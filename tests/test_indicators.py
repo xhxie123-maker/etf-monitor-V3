@@ -27,5 +27,31 @@ class IndicatorTests(unittest.TestCase):
         self.assertIsNone(got["近3年"])
         self.assertIsNone(got["近5年"])
 
+    def test_patch_dy_fills_existing_rows_without_overwriting_pe(self):
+        hist = pd.DataFrame({
+            "date": pd.to_datetime(["2026-10-29", "2026-10-30"]),
+            "index_code": ["000922", "000922"],
+            "index_name": ["中证红利", "中证红利"],
+            "pe": [9.0, 9.22], "pb": [np.nan, np.nan],
+            "dy": [np.nan, np.nan], "source": ["csindex", "csindex"]})
+        dy = pd.DataFrame({"date": pd.to_datetime(["2026-10-30"]), "dy": [5.8]})
+        got = em.patch_dy(hist, "000922", "中证红利", dy)
+        # 命中行：dy 被填充，pe 保持原值
+        row = got[got["date"] == pd.Timestamp("2026-10-30")].iloc[0]
+        self.assertEqual(row["pe"], 9.22)
+        self.assertEqual(row["dy"], 5.8)
+        # 未命中日期不新增行
+        self.assertEqual(len(got), 2)
+
+    def test_patch_dy_does_not_insert_new_rows(self):
+        hist = pd.DataFrame({
+            "date": pd.to_datetime(["2026-10-30"]),
+            "index_code": ["000922"], "index_name": ["中证红利"],
+            "pe": [9.22], "pb": [np.nan], "dy": [np.nan], "source": ["csindex"]})
+        dy = pd.DataFrame({"date": pd.to_datetime(["2026-10-31"]), "dy": [5.9]})
+        got = em.patch_dy(hist, "000922", "中证红利", dy)
+        self.assertEqual(len(got), 1)
+        self.assertTrue(pd.isna(got.iloc[0]["dy"]))
+
 if __name__ == "__main__":
     unittest.main()
