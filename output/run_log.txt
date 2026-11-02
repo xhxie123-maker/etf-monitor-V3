@@ -1,317 +1,200 @@
-[2026-10-29 19:00:42] [数据源] 东财指数行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-10-29 19:00:53] [数据源] 东财指数行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-10-29 19:00:53] 东财指数行情不可用，尝试新浪源
-[2026-10-29 19:01:02] [数据源] 东财指数行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-10-29 19:01:14] [数据源] 东财指数行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-10-29 19:01:14] 东财指数行情不可用，尝试新浪源
-[2026-10-29 19:01:16] [数据源] 东财ETF行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-10-29 19:01:20] [数据源] 东财ETF行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-10-29 19:01:20] 东财ETF行情不可用，尝试新浪源
-[2026-10-29 19:01:23] 红利ETF: 收盘 1.361 | PE分位 80.0%(20期) | 结论 逢高减仓
-[2026-10-29 19:01:24] [数据源] 东财ETF行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-10-29 19:01:28] [数据源] 东财ETF行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-10-29 19:01:28] 东财ETF行情不可用，尝试新浪源
-[2026-10-29 19:01:31] 银行ETF: 收盘 1.444 | PE分位 80.0%(20期) | 结论 逢高减仓
-[2026-10-29 19:01:32] [数据源] 东财ETF行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-10-29 19:01:35] [数据源] 东财ETF行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-10-29 19:01:35] 东财ETF行情不可用，尝试新浪源
-[2026-10-29 19:01:37] 煤炭ETF: 收盘 1.209 | PE分位 30.0%(20期) | 结论 观望持有
-[2026-10-29 19:01:37] 看板已生成: /home/runner/work/etf-monitor/etf-monitor/output/etf_dashboard.html
-[2026-10-29 19:15:36] [数据源] 东财指数行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-10-29 19:15:46] [数据源] 东财指数行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-10-29 19:15:46] 东财指数行情不可用，尝试新浪源
-[2026-10-29 19:15:55] [数据源] 东财指数行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-10-29 19:16:04] [数据源] 东财指数行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-10-29 19:16:04] 东财指数行情不可用，尝试新浪源
-[2026-10-29 19:16:04] 新浪指数行情数据过期(末日期 2019-01-30)，跳过
-[2026-10-29 19:16:04] 新浪指数行情不可用，尝试腾讯源
-[2026-10-29 19:16:26] [数据源] 东财ETF行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-10-29 19:16:29] [数据源] 东财ETF行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-10-29 19:16:29] 东财ETF行情不可用，尝试新浪源
-[2026-10-29 19:16:32] 红利ETF: 收盘 1.361 | PE分位 80.0%(20期) | 结论 逢高减仓
-[2026-10-29 19:16:33] [数据源] 东财ETF行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-10-29 19:16:35] [数据源] 东财ETF行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-10-29 19:16:35] 东财ETF行情不可用，尝试新浪源
-[2026-10-29 19:16:39] 银行ETF: 收盘 1.444 | PE分位 80.0%(20期) | 结论 逢高减仓
-[2026-10-29 19:16:39] [数据源] 东财ETF行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-10-29 19:16:42] [数据源] 东财ETF行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-10-29 19:16:42] 东财ETF行情不可用，尝试新浪源
-[2026-10-29 19:16:51] 煤炭ETF: 收盘 1.209 | PE分位 30.0%(20期) | 结论 观望持有
-[2026-10-29 19:16:51] 看板已生成: /home/runner/work/etf-monitor/etf-monitor/output/etf_dashboard.html
-[2026-10-30 11:38:27] [数据源] 东财指数行情 第1/2次获取失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
-[2026-10-30 11:38:30] [数据源] 东财指数行情 第2/2次获取失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
-[2026-10-30 11:38:30] 东财指数行情不可用，尝试新浪源
-[2026-10-30 11:38:33] [数据源] 东财指数行情 第1/2次获取失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
-[2026-10-30 11:38:39] [数据源] 东财指数行情 第2/2次获取失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
-[2026-10-30 11:38:39] 东财指数行情不可用，尝试新浪源
-[2026-10-30 11:38:40] 新浪指数行情数据过期(末日期 2019-01-30)，跳过
-[2026-10-30 11:38:40] 新浪指数行情不可用，尝试腾讯源
-[2026-10-30 11:39:03] [数据源] 东财ETF行情 第1/2次获取失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
-[2026-10-30 11:39:05] [数据源] 东财ETF行情 第2/2次获取失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
-[2026-10-30 11:39:05] 东财ETF行情不可用，尝试腾讯源
-[2026-10-30 11:39:15] 红利ETF: 收盘 1.373 | PE分位 95.2%(21期) | 结论 逢高减仓
-[2026-10-30 11:39:16] [数据源] 东财ETF行情 第1/2次获取失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
-[2026-10-30 11:39:19] [数据源] 东财ETF行情 第2/2次获取失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
-[2026-10-30 11:39:19] 东财ETF行情不可用，尝试腾讯源
-[2026-10-30 11:39:26] 银行ETF: 收盘 1.472 | PE分位 95.2%(21期) | 结论 逢高减仓
-[2026-10-30 11:39:27] [数据源] 东财ETF行情 第1/2次获取失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
-[2026-10-30 11:39:30] [数据源] 东财ETF行情 第2/2次获取失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
-[2026-10-30 11:39:30] 东财ETF行情不可用，尝试腾讯源
-[2026-10-30 11:39:39] 煤炭ETF: 收盘 1.229 | PE分位 76.2%(21期) | 结论 逢高减仓
-[2026-10-30 11:39:39] 看板已生成: /home/runner/work/etf-monitor/etf-monitor/output/etf_dashboard.html
-[2026-10-30 16:23:15] [数据源] 东财指数行情 第1/2次获取失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
-[2026-10-30 16:23:18] [数据源] 东财指数行情 第2/2次获取失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
-[2026-10-30 16:23:18] 东财指数行情不可用，尝试新浪源
-[2026-10-30 16:23:19] [数据源] 东财指数行情 第1/2次获取失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
-[2026-10-30 16:23:23] [数据源] 东财指数行情 第2/2次获取失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
-[2026-10-30 16:23:23] 东财指数行情不可用，尝试新浪源
-[2026-10-30 16:23:23] 新浪指数行情数据过期(末日期 2019-01-30)，跳过
-[2026-10-30 16:23:23] 新浪指数行情不可用，尝试腾讯源
-[2026-10-30 16:23:40] 红利ETF: 收盘 1.383 | PE分位 95.2%(21期) | 结论 逢高减仓
-[2026-10-30 16:23:47] 银行ETF: 收盘 1.482 | PE分位 95.2%(21期) | 结论 逢高减仓
-[2026-10-30 16:23:48] [数据源] 东财ETF行情 第1/2次获取失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
-[2026-10-30 16:23:50] [数据源] 东财ETF行情 第2/2次获取失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
-[2026-10-30 16:23:50] 东财ETF行情不可用，尝试腾讯源
-[2026-10-30 16:23:57] 煤炭ETF: 收盘 1.238 | PE分位 76.2%(21期) | 结论 逢高减仓
-[2026-10-30 16:23:57] 看板已生成: /home/runner/work/etf-monitor/etf-monitor/output/etf_dashboard.html
-[2026-10-30 22:00:54] [数据源] 东财指数行情 第1/2次获取失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
-[2026-10-30 22:00:57] [数据源] 东财指数行情 第2/2次获取失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
-[2026-10-30 22:00:57] 东财指数行情不可用，尝试新浪源
-[2026-10-30 22:01:00] [数据源] 东财指数行情 第1/2次获取失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
-[2026-10-30 22:01:02] [数据源] 东财指数行情 第2/2次获取失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
-[2026-10-30 22:01:02] 东财指数行情不可用，尝试新浪源
-[2026-10-30 22:01:03] 新浪指数行情数据过期(末日期 2019-01-30)，跳过
-[2026-10-30 22:01:03] 新浪指数行情不可用，尝试腾讯源
-[2026-10-30 22:01:24] 红利ETF: 收盘 1.383 | PE 9.46 分位 1Y 85.2% / 3Y 95.1% / 5Y 96.9% (n=250/750/1212) | 结论 逢高减仓
-[2026-10-30 22:01:26] 银行ETF: 收盘 1.482 | PE 7.69 分位 1Y 99.2% / 3Y 99.6% / 5Y 99.8% (n=250/750/1212) | 结论 逢高减仓
-[2026-10-30 22:01:30] [数据源] 东财ETF行情 第1/2次获取失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
-[2026-10-30 22:01:32] [数据源] 东财ETF行情 第2/2次获取失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
-[2026-10-30 22:01:32] 东财ETF行情不可用，尝试腾讯源
-[2026-10-30 22:01:40] 煤炭ETF: 收盘 1.238 | PE 19.53 分位 1Y 64.0% / 3Y 62.3% / 5Y 37.4% (n=250/750/1250) | 结论 观望持有
-[2026-10-30 22:01:40] 看板已生成: /home/runner/work/etf-monitor/etf-monitor/output/etf_dashboard.html
-[2026-10-30 22:09:42] [数据源] 东财指数行情 第1/2次获取失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
-[2026-10-30 22:09:45] [数据源] 东财指数行情 第2/2次获取失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
-[2026-10-30 22:09:45] 东财指数行情不可用，尝试新浪源
-[2026-10-30 22:09:46] [数据源] 东财指数行情 第1/2次获取失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
-[2026-10-30 22:09:50] [数据源] 东财指数行情 第2/2次获取失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
-[2026-10-30 22:09:50] 东财指数行情不可用，尝试新浪源
-[2026-10-30 22:09:50] 新浪指数行情数据过期(末日期 2019-01-30)，跳过
-[2026-10-30 22:09:50] 新浪指数行情不可用，尝试腾讯源
-[2026-10-30 22:10:09] 红利ETF: 收盘 1.383 | PE 9.46 分位 1Y 28.4% / 3Y 60.9% / 5Y 75.7% (n=250/750/1212) | 结论 观望持有
-[2026-10-30 22:10:11] 银行ETF: 收盘 1.482 | PE 7.69 分位 1Y 99.2% / 3Y 99.6% / 5Y 99.8% (n=250/750/1212) | 结论 逢高减仓
-[2026-10-30 22:10:13] 煤炭ETF: 收盘 1.238 | PE 19.53 分位 1Y 64.0% / 3Y 62.3% / 5Y 38.5% (n=250/750/1212) | 结论 观望持有
-[2026-10-30 22:10:13] 看板已生成: /home/runner/work/etf-monitor/etf-monitor/output/etf_dashboard.html
-[2026-10-30 22:21:06] [数据源] 东财指数行情 第1/2次获取失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
-[2026-10-30 22:21:08] [数据源] 东财指数行情 第2/2次获取失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
-[2026-10-30 22:21:08] 东财指数行情不可用，尝试新浪源
-[2026-10-30 22:21:11] [数据源] 东财指数行情 第1/2次获取失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
-[2026-10-30 22:21:15] [数据源] 东财指数行情 第2/2次获取失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
-[2026-10-30 22:21:15] 东财指数行情不可用，尝试新浪源
-[2026-10-30 22:21:15] 新浪指数行情数据过期(末日期 2019-01-30)，跳过
-[2026-10-30 22:21:15] 新浪指数行情不可用，尝试腾讯源
-[2026-10-30 22:21:31] [数据源] 东财ETF行情 第1/2次获取失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
-[2026-10-30 22:21:34] [数据源] 东财ETF行情 第2/2次获取失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
-[2026-10-30 22:21:34] 东财ETF行情不可用，尝试腾讯源
-[2026-10-30 22:21:41] [数据源] 中证指数官网估值 第1/1次获取失败: ConnectionError: ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
-[2026-10-30 22:21:41] [数据源] 东财指数行情 第1/2次获取失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
-[2026-10-30 22:21:43] [数据源] 东财指数行情 第2/2次获取失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
-[2026-10-30 22:21:43] 东财指数行情不可用，尝试新浪源
-[2026-10-30 22:21:44] 新浪指数行情数据过期(末日期 2019-01-30)，跳过
-[2026-10-30 22:21:44] 新浪指数行情不可用，尝试腾讯源
-[2026-10-30 22:21:58] 红利ETF: 收盘 1.383 | PE 9.46 分位 1Y 51.2% / 3Y 77.2% / 5Y 85.5% (n=250/750/1250) | 结论 逢高减仓
-[2026-10-30 22:21:58] [数据源] 东财ETF行情 第1/2次获取失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
-[2026-10-30 22:22:02] [数据源] 东财ETF行情 第2/2次获取失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
-[2026-10-30 22:22:02] 东财ETF行情不可用，尝试腾讯源
-[2026-10-30 22:22:07] [数据源] 中证指数官网估值 第1/1次获取失败: ConnectionError: ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
-[2026-10-30 22:22:08] [数据源] 东财指数行情 第1/2次获取失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
-[2026-10-30 22:22:11] [数据源] 东财指数行情 第2/2次获取失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
-[2026-10-30 22:22:11] 东财指数行情不可用，尝试新浪源
-[2026-10-30 22:22:12] 银行ETF: 收盘 1.482 | PE 7.69 分位 1Y 99.2% / 3Y 94.9% / 5Y 97.0% (n=250/750/1250) | 结论 逢高减仓
-[2026-10-30 22:22:13] [数据源] 东财ETF行情 第1/2次获取失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
-[2026-10-30 22:22:16] [数据源] 东财ETF行情 第2/2次获取失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
-[2026-10-30 22:22:16] 东财ETF行情不可用，尝试腾讯源
-[2026-10-30 22:22:22] [数据源] 中证指数官网估值 第1/1次获取失败: ConnectionError: ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
-[2026-10-30 22:22:22] [数据源] 东财指数行情 第1/2次获取失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
-[2026-10-30 22:22:27] [数据源] 东财指数行情 第2/2次获取失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
-[2026-10-30 22:22:27] 东财指数行情不可用，尝试新浪源
-[2026-10-30 22:22:27] 新浪指数行情数据过期(末日期 2016-06-13)，跳过
-[2026-10-30 22:22:27] 新浪指数行情不可用，尝试腾讯源
-[2026-10-30 22:22:39] 煤炭ETF: 收盘 1.238 | PE 19.53 分位 1Y 60.8% / 3Y 80.1% / 5Y 86.9% (n=250/750/1250) | 结论 逢高减仓
-[2026-10-30 22:22:39] 看板已生成: /home/runner/work/etf-monitor/etf-monitor/output/etf_dashboard.html
-[2026-10-31 01:48:34] [数据源] 东财指数行情 第1/2次获取失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
-[2026-10-31 01:48:36] [数据源] 东财指数行情 第2/2次获取失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
-[2026-10-31 01:48:36] 东财指数行情不可用，尝试新浪源
-[2026-10-31 01:48:38] [数据源] 东财指数行情 第1/2次获取失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
-[2026-10-31 01:48:41] [数据源] 东财指数行情 第2/2次获取失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
-[2026-10-31 01:48:41] 东财指数行情不可用，尝试新浪源
-[2026-10-31 01:48:41] 新浪指数行情数据过期(末日期 2019-01-30)，跳过
-[2026-10-31 01:48:41] 新浪指数行情不可用，尝试腾讯源
-[2026-10-31 01:48:56] 东财ETF行情不可用，尝试腾讯源
-[2026-10-31 01:49:03] [数据源] 东财指数行情 第1/2次获取失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
-[2026-10-31 01:49:06] [数据源] 东财指数行情 第2/2次获取失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
-[2026-10-31 01:49:06] 东财指数行情不可用，尝试新浪源
-[2026-10-31 01:49:06] 新浪指数行情数据过期(末日期 2019-01-30)，跳过
-[2026-10-31 01:49:06] 新浪指数行情不可用，尝试腾讯源
-[2026-10-31 01:49:20] 红利ETF: 收盘 1.383 | PE 9.46 分位 1Y 51.2% / 3Y 77.2% / 5Y 85.5% (n=250/750/1250) | 结论 逢高减仓
-[2026-10-31 01:49:20] [数据源] 东财ETF行情 第1/2次获取失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
-[2026-10-31 01:49:23] [数据源] 东财ETF行情 第2/2次获取失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
-[2026-10-31 01:49:23] 东财ETF行情不可用，尝试腾讯源
-[2026-10-31 01:49:29] [数据源] 东财指数行情 第1/2次获取失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
-[2026-10-31 01:49:32] [数据源] 东财指数行情 第2/2次获取失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
-[2026-10-31 01:49:32] 东财指数行情不可用，尝试新浪源
-[2026-10-31 01:49:33] 银行ETF: 收盘 1.482 | PE 7.69 分位 1Y 99.2% / 3Y 94.9% / 5Y 97.0% (n=250/750/1250) | 结论 逢高减仓
-[2026-10-31 01:49:34] [数据源] 东财ETF行情 第1/2次获取失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
-[2026-10-31 01:49:36] [数据源] 东财ETF行情 第2/2次获取失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
-[2026-10-31 01:49:36] 东财ETF行情不可用，尝试腾讯源
-[2026-10-31 01:49:44] [数据源] 东财指数行情 第1/2次获取失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
-[2026-10-31 01:49:47] [数据源] 东财指数行情 第2/2次获取失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
-[2026-10-31 01:49:47] 东财指数行情不可用，尝试新浪源
-[2026-10-31 01:49:48] 新浪指数行情数据过期(末日期 2016-06-13)，跳过
-[2026-10-31 01:49:48] 新浪指数行情不可用，尝试腾讯源
-[2026-10-31 01:49:59] 煤炭ETF: 收盘 1.238 | PE 19.53 分位 1Y 60.8% / 3Y 80.1% / 5Y 86.9% (n=250/750/1250) | 结论 逢高减仓
-[2026-10-31 01:51:04] 看板已生成: /home/runner/work/etf-monitor/etf-monitor/output/etf_dashboard.html
-[2026-10-31 16:41:54] [数据源] 东财指数行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-10-31 16:42:03] [数据源] 东财指数行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-10-31 16:42:03] 东财指数行情不可用，尝试新浪源
-[2026-10-31 16:42:16] [数据源] 东财指数行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-10-31 16:42:26] [数据源] 东财指数行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-10-31 16:42:26] 东财指数行情不可用，尝试新浪源
-[2026-10-31 16:42:26] 新浪指数行情数据过期(末日期 2019-01-30)，跳过
-[2026-10-31 16:42:26] 新浪指数行情不可用，尝试腾讯源
-[2026-10-31 16:42:49] [数据源] 中证指数官网估值 第1/1次获取失败: ValueError: 指数行情: 缺少 date/close 字段
-[2026-10-31 16:43:00] [数据源] 东财指数行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-10-31 16:43:12] [数据源] 东财指数行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-10-31 16:43:12] 东财指数行情不可用，尝试新浪源
-[2026-10-31 16:43:15] 新浪指数行情数据过期(末日期 2019-01-30)，跳过
-[2026-10-31 16:43:15] 新浪指数行情不可用，尝试腾讯源
-[2026-10-31 16:43:34] 红利ETF: 收盘 1.383 | PE 9.46 分位 1Y 51.4% / 3Y 77.3% / 5Y 85.6% (n=250/750/1250) | 结论 逢高减仓
-[2026-10-31 16:43:34] [数据源] 东财ETF行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-10-31 16:43:37] [数据源] 东财ETF行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-10-31 16:43:37] 东财ETF行情不可用，尝试腾讯源
-[2026-10-31 16:43:44] [数据源] 中证指数官网估值 第1/1次获取失败: ValueError: 指数行情: 缺少 date/close 字段
-[2026-10-31 16:43:54] [数据源] 东财指数行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-10-31 16:44:03] [数据源] 东财指数行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-10-31 16:44:03] 东财指数行情不可用，尝试新浪源
-[2026-10-31 16:44:04] 银行ETF: 收盘 1.482 | PE 7.69 分位 1Y 99.6% / 3Y 95.1% / 5Y 97.0% (n=250/750/1250) | 结论 逢高减仓
-[2026-10-31 16:44:05] [数据源] 东财ETF行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-10-31 16:44:07] [数据源] 东财ETF行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-10-31 16:44:07] 东财ETF行情不可用，尝试腾讯源
-[2026-10-31 16:44:16] [数据源] 中证指数官网估值 第1/1次获取失败: ValueError: 指数行情: 缺少 date/close 字段
-[2026-10-31 16:44:24] [数据源] 东财指数行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-10-31 16:44:35] [数据源] 东财指数行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-10-31 16:44:35] 东财指数行情不可用，尝试新浪源
-[2026-10-31 16:44:37] 新浪指数行情数据过期(末日期 2016-06-13)，跳过
-[2026-10-31 16:44:37] 新浪指数行情不可用，尝试腾讯源
-[2026-10-31 16:44:53] 煤炭ETF: 收盘 1.238 | PE 19.53 分位 1Y 61.0% / 3Y 80.2% / 5Y 86.9% (n=250/750/1250) | 结论 逢高减仓
-[2026-10-31 16:46:11] 看板已生成: /home/runner/work/etf-monitor/etf-monitor/output/etf_dashboard.html
-[2026-11-01 00:32:37] [数据源] 东财指数行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-11-01 00:32:47] [数据源] 东财指数行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-11-01 00:32:47] 东财指数行情不可用，尝试新浪源
-[2026-11-01 00:32:59] [数据源] 东财指数行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-11-01 00:33:10] [数据源] 东财指数行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-11-01 00:33:10] 东财指数行情不可用，尝试新浪源
-[2026-11-01 00:33:11] 新浪指数行情数据过期(末日期 2019-01-30)，跳过
-[2026-11-01 00:33:11] 新浪指数行情不可用，尝试腾讯源
-[2026-11-01 00:33:32] [数据源] 中证指数官网估值 第1/1次获取失败: ValueError: 指数行情: 缺少 date/close 字段
-[2026-11-01 00:33:39] [数据源] 东财指数行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-11-01 00:33:49] [数据源] 东财指数行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-11-01 00:33:49] 东财指数行情不可用，尝试新浪源
-[2026-11-01 00:33:50] 新浪指数行情数据过期(末日期 2019-01-30)，跳过
-[2026-11-01 00:33:50] 新浪指数行情不可用，尝试腾讯源
-[2026-11-01 00:34:07] 红利ETF: 收盘 1.383 | PE 9.46 分位 1Y 51.4% / 3Y 77.3% / 5Y 85.6% (n=250/750/1250) | 官方PE 22条 | 决策 53分[70%] 观望或按既定计划小额定投
-[2026-11-01 00:34:07] 红利ETF: 价格历史已积累 1211 条 -> price_history_515180.csv
-[2026-11-01 00:34:10] [数据源] 东财ETF行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-11-01 00:34:13] [数据源] 东财ETF行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-11-01 00:34:13] 东财ETF行情不可用，尝试腾讯源
-[2026-11-01 00:34:21] [数据源] 中证指数官网估值 第1/1次获取失败: ValueError: 指数行情: 缺少 date/close 字段
-[2026-11-01 00:34:29] [数据源] 东财指数行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-11-01 00:34:39] [数据源] 东财指数行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-11-01 00:34:39] 东财指数行情不可用，尝试新浪源
-[2026-11-01 00:34:40] 银行ETF: 收盘 1.482 | PE 7.69 分位 1Y 99.6% / 3Y 95.1% / 5Y 97.0% (n=250/750/1250) | 官方PE 22条 | 决策 100分[70%] 允许分批建仓/定投加档
-[2026-11-01 00:34:40] 银行ETF: 价格历史已积累 1315 条 -> price_history_516310.csv
-[2026-11-01 00:34:41] [数据源] 东财ETF行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-11-01 00:34:43] [数据源] 东财ETF行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-11-01 00:34:43] 东财ETF行情不可用，尝试腾讯源
-[2026-11-01 00:34:52] [数据源] 中证指数官网估值 第1/1次获取失败: ValueError: 指数行情: 缺少 date/close 字段
-[2026-11-01 00:35:00] [数据源] 东财指数行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-11-01 00:35:11] [数据源] 东财指数行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-11-01 00:35:11] 东财指数行情不可用，尝试新浪源
-[2026-11-01 00:35:14] 新浪指数行情数据过期(末日期 2016-06-13)，跳过
-[2026-11-01 00:35:14] 新浪指数行情不可用，尝试腾讯源
-[2026-11-01 00:35:29] 煤炭ETF: 收盘 1.238 | PE 19.53 分位 1Y 61.0% / 3Y 80.2% / 5Y 86.9% (n=250/750/1250) | 官方PE 22条 | 决策 15分[70%] 暂停新增仓位，优先控制风险
-[2026-11-01 00:35:29] 煤炭ETF: 价格历史已积累 1617 条 -> price_history_515220.csv
-[2026-11-01 00:36:39] 看板已生成: /home/runner/work/etf-monitor-V2/etf-monitor-V2/output/etf_dashboard.html
-[2026-11-01 00:43:39] [数据源] 东财指数行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-11-01 00:43:48] [数据源] 东财指数行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-11-01 00:43:48] 东财指数行情不可用，尝试新浪源
-[2026-11-01 00:43:56] [数据源] 东财指数行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-11-01 00:44:05] [数据源] 东财指数行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-11-01 00:44:05] 东财指数行情不可用，尝试新浪源
-[2026-11-01 00:44:05] 新浪指数行情数据过期(末日期 2019-01-30)，跳过
-[2026-11-01 00:44:05] 新浪指数行情不可用，尝试腾讯源
-[2026-11-01 00:44:26] [数据源] 中证指数官网估值 第1/1次获取失败: ValueError: 指数行情: 缺少 date/close 字段
-[2026-11-01 00:44:33] [数据源] 东财指数行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-11-01 00:44:44] [数据源] 东财指数行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-11-01 00:44:44] 东财指数行情不可用，尝试新浪源
-[2026-11-01 00:44:44] 新浪指数行情数据过期(末日期 2019-01-30)，跳过
-[2026-11-01 00:44:44] 新浪指数行情不可用，尝试腾讯源
-[2026-11-01 00:45:01] 红利ETF: 收盘 1.383 | PE 9.46 分位 1Y 51.4% / 3Y 77.3% / 5Y 85.6% (n=250/750/1250) | 官方PE 22条 | 决策 53分[70%] 观望或按既定计划小额定投
-[2026-11-01 00:45:01] 红利ETF: 价格历史已积累 1211 条 -> price_history_515180.csv
-[2026-11-01 00:45:03] [数据源] 东财ETF行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-11-01 00:45:06] [数据源] 东财ETF行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-11-01 00:45:06] 东财ETF行情不可用，尝试腾讯源
-[2026-11-01 00:45:13] [数据源] 中证指数官网估值 第1/1次获取失败: ValueError: 指数行情: 缺少 date/close 字段
-[2026-11-01 00:45:20] [数据源] 东财指数行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-11-01 00:45:31] [数据源] 东财指数行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-11-01 00:45:31] 东财指数行情不可用，尝试新浪源
-[2026-11-01 00:45:33] 银行ETF: 收盘 1.482 | PE 7.69 分位 1Y 99.6% / 3Y 95.1% / 5Y 97.0% (n=250/750/1250) | 官方PE 22条 | 决策 100分[70%] 允许分批建仓/定投加档
-[2026-11-01 00:45:33] 银行ETF: 价格历史已积累 1315 条 -> price_history_516310.csv
-[2026-11-01 00:45:34] [数据源] 东财ETF行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-11-01 00:45:37] [数据源] 东财ETF行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-11-01 00:45:37] 东财ETF行情不可用，尝试腾讯源
-[2026-11-01 00:45:44] [数据源] 中证指数官网估值 第1/1次获取失败: ValueError: 指数行情: 缺少 date/close 字段
-[2026-11-01 00:45:51] [数据源] 东财指数行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-11-01 00:46:00] [数据源] 东财指数行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-11-01 00:46:00] 东财指数行情不可用，尝试新浪源
-[2026-11-01 00:46:00] 新浪指数行情数据过期(末日期 2016-06-13)，跳过
-[2026-11-01 00:46:00] 新浪指数行情不可用，尝试腾讯源
-[2026-11-01 00:46:14] 煤炭ETF: 收盘 1.238 | PE 19.53 分位 1Y 61.0% / 3Y 80.2% / 5Y 86.9% (n=250/750/1250) | 官方PE 22条 | 决策 15分[70%] 暂停新增仓位，优先控制风险
-[2026-11-01 00:46:14] 煤炭ETF: 价格历史已积累 1617 条 -> price_history_515220.csv
-[2026-11-01 00:47:22] 看板已生成: /home/runner/work/etf-monitor-V2/etf-monitor-V2/output/etf_dashboard.html
-[2026-11-02 11:23:00] [数据源] 东财指数行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-11-02 11:23:18] [数据源] 东财指数行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-11-02 11:23:18] 东财指数行情不可用，尝试新浪源
-[2026-11-02 11:23:24] [数据源] 东财指数行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-11-02 11:23:33] [数据源] 东财指数行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-11-02 11:23:33] 东财指数行情不可用，尝试新浪源
-[2026-11-02 11:23:34] 新浪指数行情数据过期(末日期 2019-01-30)，跳过
-[2026-11-02 11:23:34] 新浪指数行情不可用，尝试腾讯源
-[2026-11-02 11:23:58] [数据源] 东财ETF行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-11-02 11:24:00] [数据源] 东财ETF行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-11-02 11:24:00] 东财ETF行情不可用，尝试腾讯源
-[2026-11-02 11:24:20] [数据源] 东财指数行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-11-02 11:24:30] [数据源] 东财指数行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-11-02 11:24:30] 东财指数行情不可用，尝试新浪源
-[2026-11-02 11:24:31] 新浪指数行情数据过期(末日期 2019-01-30)，跳过
-[2026-11-02 11:24:31] 新浪指数行情不可用，尝试腾讯源
-[2026-11-02 11:24:55] 红利ETF: 收盘 1.383 | PE 9.22 分位 1Y 100.0% / 3Y 100.0% / 5Y 100.0% (n=250/750/1250) | 官方PE 3808条 | 决策 0分[100%] 暂停新增仓位，优先控制风险
-[2026-11-02 11:24:55] 红利ETF: 价格历史已积累 1661 条 -> price_history_515180.csv
-[2026-11-02 11:24:55] [数据源] 东财ETF行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-11-02 11:24:59] [数据源] 东财ETF行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-11-02 11:24:59] 东财ETF行情不可用，尝试腾讯源
-[2026-11-02 11:25:28] [数据源] 东财指数行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-11-02 11:25:37] [数据源] 东财指数行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-11-02 11:25:37] 东财指数行情不可用，尝试新浪源
-[2026-11-02 11:25:38] 银行ETF: 收盘 1.482 | PE 7.59 分位 1Y 96.4% / 3Y 98.8% / 5Y 99.3% (n=250/750/1250) | 官方PE 2926条 | 决策 20分[100%] 暂停新增仓位，优先控制风险
-[2026-11-02 11:25:38] 银行ETF: 价格历史已积累 1315 条 -> price_history_516310.csv
-[2026-11-02 11:25:39] [数据源] 东财ETF行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-11-02 11:25:41] [数据源] 东财ETF行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-11-02 11:25:41] 东财ETF行情不可用，尝试腾讯源
-[2026-11-02 11:25:58] [数据源] 东财指数行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-11-02 11:26:07] [数据源] 东财指数行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-[2026-11-02 11:26:07] 东财指数行情不可用，尝试新浪源
-[2026-11-02 11:26:09] 新浪指数行情数据过期(末日期 2016-06-13)，跳过
-[2026-11-02 11:26:09] 新浪指数行情不可用，尝试腾讯源
-[2026-11-02 11:26:30] 煤炭ETF: 收盘 1.238 | PE 17.86 分位 1Y 88.8% / 3Y 96.3% / 5Y 97.8% (n=250/750/1250) | 官方PE 3808条 | 决策 0分[100%] 暂停新增仓位，优先控制风险
-[2026-11-02 11:26:30] 煤炭ETF: 价格历史已积累 1617 条 -> price_history_515220.csv
-[2026-11-02 11:27:59] 看板已生成: /home/runner/work/etf-monitor-V3/etf-monitor-V3/output/etf_dashboard.html
+[2026-11-01 00:17:14] [数据源] 东财指数行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-01 00:17:21] [数据源] 东财指数行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-01 00:17:21] 东财指数行情不可用，尝试新浪源
+[2026-11-01 00:17:27] [数据源] 东财指数行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-01 00:17:34] [数据源] 东财指数行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-01 00:17:34] 东财指数行情不可用，尝试新浪源
+[2026-11-01 00:17:34] 新浪指数行情数据过期(末日期 2019-01-30)，跳过
+[2026-11-01 00:17:34] 新浪指数行情不可用，尝试腾讯源
+[2026-11-01 00:17:42] [数据源] 东财ETF行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-01 00:17:44] [数据源] 东财ETF行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-01 00:17:44] 东财ETF行情不可用，尝试腾讯源
+[2026-11-01 00:17:47] [数据源] 中证指数官网估值 第1/1次获取失败: ValueError: 指数行情: 缺少 date/close 字段
+[2026-11-01 00:17:52] [数据源] 东财指数行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-01 00:17:59] [数据源] 东财指数行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-01 00:17:59] 东财指数行情不可用，尝试新浪源
+[2026-11-01 00:17:59] 新浪指数行情数据过期(末日期 2019-01-30)，跳过
+[2026-11-01 00:17:59] 新浪指数行情不可用，尝试腾讯源
+[2026-11-01 00:18:06] 红利ETF 日频PE序列不足(样本0)，分位不可用
+[2026-11-01 00:18:07] 红利ETF: 收盘 1.383 | PE None 分位 1Y None% / 3Y None% / 5Y None% (n=None/None/None) | 官方PE 0条 | 决策 40分[67%] 观望或按既定计划小额定投
+[2026-11-01 00:18:07] 红利ETF: 价格历史已积累 1661 条 -> price_history_515180.csv
+[2026-11-01 00:18:07] [数据源] 东财ETF行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-01 00:18:09] [数据源] 东财ETF行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-01 00:18:09] 东财ETF行情不可用，尝试腾讯源
+[2026-11-01 00:18:11] [数据源] 中证指数官网估值 第1/1次获取失败: ValueError: 指数行情: 缺少 date/close 字段
+[2026-11-01 00:18:17] [数据源] 东财指数行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-01 00:18:24] [数据源] 东财指数行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-01 00:18:24] 东财指数行情不可用，尝试新浪源
+[2026-11-01 00:18:24] 银行ETF 日频PE序列不足(样本0)，分位不可用
+[2026-11-01 00:18:24] 银行ETF: 收盘 1.482 | PE None 分位 1Y None% / 3Y None% / 5Y None% (n=None/None/None) | 官方PE 0条 | 决策 100分[67%] 允许分批建仓/定投加档
+[2026-11-01 00:18:24] 银行ETF: 价格历史已积累 1315 条 -> price_history_516310.csv
+[2026-11-01 00:18:24] [数据源] 东财ETF行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-01 00:18:26] [数据源] 东财ETF行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-01 00:18:26] 东财ETF行情不可用，尝试腾讯源
+[2026-11-01 00:18:29] [数据源] 中证指数官网估值 第1/1次获取失败: ValueError: 指数行情: 缺少 date/close 字段
+[2026-11-01 00:18:35] [数据源] 东财指数行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-01 00:18:42] [数据源] 东财指数行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-01 00:18:42] 东财指数行情不可用，尝试新浪源
+[2026-11-01 00:18:42] 新浪指数行情数据过期(末日期 2016-06-13)，跳过
+[2026-11-01 00:18:42] 新浪指数行情不可用，尝试腾讯源
+[2026-11-01 00:18:48] 煤炭ETF 日频PE序列不足(样本0)，分位不可用
+[2026-11-01 00:18:48] 煤炭ETF: 收盘 1.238 | PE None 分位 1Y None% / 3Y None% / 5Y None% (n=None/None/None) | 官方PE 0条 | 决策 15分[67%] 暂停新增仓位，优先控制风险
+[2026-11-01 00:18:48] 煤炭ETF: 价格历史已积累 1617 条 -> price_history_515220.csv
+[2026-11-01 00:19:15] 看板已生成: C:\Users\31109\Doubao\chats\2026-10-29\new-chat\etf_monitor\v3_work\output\etf_dashboard.html
+[2026-11-02 11:01:53] [数据源] 东财指数行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-02 11:02:00] [数据源] 东财指数行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-02 11:02:00] 东财指数行情不可用，尝试新浪源
+[2026-11-02 11:02:07] [数据源] 东财指数行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-02 11:02:14] [数据源] 东财指数行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-02 11:02:14] 东财指数行情不可用，尝试新浪源
+[2026-11-02 11:02:14] 新浪指数行情数据过期(末日期 2019-01-30)，跳过
+[2026-11-02 11:02:14] 新浪指数行情不可用，尝试腾讯源
+[2026-11-02 11:02:28] [数据源] 东财指数行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-02 11:02:35] [数据源] 东财指数行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-02 11:02:35] 东财指数行情不可用，尝试新浪源
+[2026-11-02 11:02:35] 新浪指数行情数据过期(末日期 2019-01-30)，跳过
+[2026-11-02 11:02:35] 新浪指数行情不可用，尝试腾讯源
+[2026-11-02 11:02:43] 红利ETF: 收盘 1.383 | PE 9.22 分位 1Y 100.0% / 3Y 100.0% / 5Y 100.0% (n=250/750/1250) | 官方PE 3808条 | 决策 -7分[100%] 暂停新增仓位，优先控制风险
+[2026-11-02 11:02:43] 红利ETF: 价格历史已积累 1662 条 -> price_history_515180.csv
+[2026-11-02 11:02:43] [数据源] 东财ETF行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-02 11:02:45] [数据源] 东财ETF行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-02 11:02:45] 东财ETF行情不可用，尝试腾讯源
+[2026-11-02 11:02:53] [数据源] 东财指数行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-02 11:03:01] [数据源] 东财指数行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-02 11:03:01] 东财指数行情不可用，尝试新浪源
+[2026-11-02 11:03:02] 银行ETF: 收盘 1.482 | PE 7.59 分位 1Y 96.4% / 3Y 98.8% / 5Y 99.3% (n=250/750/1250) | 官方PE 2926条 | 决策 20分[100%] 暂停新增仓位，优先控制风险
+[2026-11-02 11:03:02] 银行ETF: 价格历史已积累 1315 条 -> price_history_516310.csv
+[2026-11-02 11:03:02] [数据源] 东财ETF行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-02 11:03:04] [数据源] 东财ETF行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-02 11:03:04] 东财ETF行情不可用，尝试腾讯源
+[2026-11-02 11:03:13] [数据源] 东财指数行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-02 11:03:20] [数据源] 东财指数行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-02 11:03:20] 东财指数行情不可用，尝试新浪源
+[2026-11-02 11:03:20] 新浪指数行情数据过期(末日期 2016-06-13)，跳过
+[2026-11-02 11:03:20] 新浪指数行情不可用，尝试腾讯源
+[2026-11-02 11:03:27] 煤炭ETF: 收盘 1.238 | PE 17.86 分位 1Y 88.8% / 3Y 96.3% / 5Y 97.8% (n=250/750/1250) | 官方PE 3808条 | 决策 -31分[100%] 暂停新增仓位，优先控制风险
+[2026-11-02 11:03:27] 煤炭ETF: 价格历史已积累 1617 条 -> price_history_515220.csv
+[2026-11-02 11:03:55] 看板已生成: C:\Users\31109\Doubao\chats\2026-10-29\new-chat\etf_monitor\v3_work\output\etf_dashboard.html
+[2026-11-02 11:07:17] [数据源] 东财指数行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-02 11:07:25] [数据源] 东财指数行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-02 11:07:25] 东财指数行情不可用，尝试新浪源
+[2026-11-02 11:07:31] [数据源] 东财指数行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-02 11:07:39] [数据源] 东财指数行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-02 11:07:39] 东财指数行情不可用，尝试新浪源
+[2026-11-02 11:07:39] 新浪指数行情数据过期(末日期 2019-01-30)，跳过
+[2026-11-02 11:07:39] 新浪指数行情不可用，尝试腾讯源
+[2026-11-02 11:07:46] [数据源] 东财ETF行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-02 11:07:48] [数据源] 东财ETF行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-02 11:07:48] 东财ETF行情不可用，尝试腾讯源
+[2026-11-02 11:07:57] [数据源] 东财指数行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-02 11:08:04] [数据源] 东财指数行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-02 11:08:04] 东财指数行情不可用，尝试新浪源
+[2026-11-02 11:08:05] 新浪指数行情数据过期(末日期 2019-01-30)，跳过
+[2026-11-02 11:08:05] 新浪指数行情不可用，尝试腾讯源
+[2026-11-02 11:08:12] 红利ETF: 收盘 1.383 | PE 9.22 分位 1Y 100.0% / 3Y 100.0% / 5Y 100.0% (n=250/750/1250) | 官方PE 3808条 | 决策 0分[100%] 暂停新增仓位，优先控制风险
+[2026-11-02 11:08:12] 红利ETF: 价格历史已积累 1662 条 -> price_history_515180.csv
+[2026-11-02 11:08:12] [数据源] 东财ETF行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-02 11:08:14] [数据源] 东财ETF行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-02 11:08:14] 东财ETF行情不可用，尝试腾讯源
+[2026-11-02 11:08:22] [数据源] 东财指数行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-02 11:08:30] [数据源] 东财指数行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-02 11:08:30] 东财指数行情不可用，尝试新浪源
+[2026-11-02 11:08:31] 银行ETF: 收盘 1.482 | PE 7.59 分位 1Y 96.4% / 3Y 98.8% / 5Y 99.3% (n=250/750/1250) | 官方PE 2926条 | 决策 20分[100%] 暂停新增仓位，优先控制风险
+[2026-11-02 11:08:31] 银行ETF: 价格历史已积累 1315 条 -> price_history_516310.csv
+[2026-11-02 11:08:31] [数据源] 东财ETF行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-02 11:08:33] [数据源] 东财ETF行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-02 11:08:33] 东财ETF行情不可用，尝试腾讯源
+[2026-11-02 11:08:41] [数据源] 东财指数行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-02 11:08:49] [数据源] 东财指数行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-02 11:08:49] 东财指数行情不可用，尝试新浪源
+[2026-11-02 11:08:49] 新浪指数行情数据过期(末日期 2016-06-13)，跳过
+[2026-11-02 11:08:49] 新浪指数行情不可用，尝试腾讯源
+[2026-11-02 11:08:56] 煤炭ETF: 收盘 1.238 | PE 17.86 分位 1Y 88.8% / 3Y 96.3% / 5Y 97.8% (n=250/750/1250) | 官方PE 3808条 | 决策 0分[100%] 暂停新增仓位，优先控制风险
+[2026-11-02 11:08:56] 煤炭ETF: 价格历史已积累 1617 条 -> price_history_515220.csv
+[2026-11-02 11:09:21] 看板已生成: C:\Users\31109\Doubao\chats\2026-10-29\new-chat\etf_monitor\v3_work\output\etf_dashboard.html
+[2026-11-02 12:25:26] [数据源] 东财指数行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-02 12:25:34] [数据源] 东财指数行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-02 12:25:34] 东财指数行情不可用，尝试新浪源
+[2026-11-02 12:25:40] [数据源] 东财指数行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-02 12:25:47] [数据源] 东财指数行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-02 12:25:47] 东财指数行情不可用，尝试新浪源
+[2026-11-02 12:25:48] 新浪指数行情数据过期(末日期 2019-01-30)，跳过
+[2026-11-02 12:25:48] 新浪指数行情不可用，尝试腾讯源
+[2026-11-02 12:25:57] [数据源] 东财ETF行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-02 12:25:59] [数据源] 东财ETF行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-02 12:25:59] 东财ETF行情不可用，尝试腾讯源
+[2026-11-02 12:26:11] [数据源] 东财指数行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-02 12:26:19] [数据源] 东财指数行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-02 12:26:19] 东财指数行情不可用，尝试新浪源
+[2026-11-02 12:26:19] 新浪指数行情数据过期(末日期 2019-01-30)，跳过
+[2026-11-02 12:26:19] 新浪指数行情不可用，尝试腾讯源
+[2026-11-02 12:26:29] 红利ETF: 收盘 1.383 | PE 9.22 分位 1Y 100.0% / 3Y 100.0% / 5Y 100.0% (n=250/750/1250) | 官方PE 3808条 | 决策 0分[100%] 暂停新增仓位，优先控制风险
+[2026-11-02 12:26:29] 红利ETF: 价格历史已积累 1662 条 -> price_history_515180.csv
+[2026-11-02 12:26:29] [数据源] 东财ETF行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-02 12:26:31] [数据源] 东财ETF行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-02 12:26:31] 东财ETF行情不可用，尝试腾讯源
+[2026-11-02 12:26:40] [数据源] 东财指数行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-02 12:26:48] [数据源] 东财指数行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-02 12:26:48] 东财指数行情不可用，尝试新浪源
+[2026-11-02 12:26:49] 银行ETF: 收盘 1.482 | PE 7.59 分位 1Y 96.4% / 3Y 98.8% / 5Y 99.3% (n=250/750/1250) | 官方PE 2926条 | 决策 20分[100%] 暂停新增仓位，优先控制风险
+[2026-11-02 12:26:49] 银行ETF: 价格历史已积累 1315 条 -> price_history_516310.csv
+[2026-11-02 12:26:49] [数据源] 东财ETF行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-02 12:26:51] [数据源] 东财ETF行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-02 12:26:51] 东财ETF行情不可用，尝试腾讯源
+[2026-11-02 12:27:03] [数据源] 东财指数行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-02 12:27:11] [数据源] 东财指数行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-02 12:27:11] 东财指数行情不可用，尝试新浪源
+[2026-11-02 12:27:11] 新浪指数行情数据过期(末日期 2016-06-13)，跳过
+[2026-11-02 12:27:11] 新浪指数行情不可用，尝试腾讯源
+[2026-11-02 12:27:18] 煤炭ETF: 收盘 1.238 | PE 17.86 分位 1Y 88.8% / 3Y 96.3% / 5Y 97.8% (n=250/750/1250) | 官方PE 3808条 | 决策 0分[100%] 暂停新增仓位，优先控制风险
+[2026-11-02 12:27:18] 煤炭ETF: 价格历史已积累 1617 条 -> price_history_515220.csv
+[2026-11-02 12:27:47] 看板已生成: C:\Users\31109\Doubao\chats\2026-10-29\new-chat\etf_monitor\v3_work\output\etf_dashboard.html
+[2026-11-02 12:31:08] 官方股息率 XLS 000922 20 期（截至 2026-10-30，不写积累库PE）
+[2026-11-02 12:31:08] 官方股息率 XLS 399986 20 期（截至 2026-10-30，不写积累库PE）
+[2026-11-02 12:31:08] 官方股息率 XLS 000820 20 期（截至 2026-10-30，不写积累库PE）
+[2026-11-02 12:31:23] 官方股息率 XLS 000922 20 期（截至 2026-10-30，不写积累库PE）
+[2026-11-02 12:31:23] 官方股息率 XLS 399986 20 期（截至 2026-10-30，不写积累库PE）
+[2026-11-02 12:31:23] 官方股息率 XLS 000820 20 期（截至 2026-10-30，不写积累库PE）
+[2026-11-02 12:31:45] 官方股息率 XLS 000922 20 期（截至 2026-10-30，不写积累库PE）
+[2026-11-02 12:31:46] 官方股息率 XLS 399986 20 期（截至 2026-10-30，不写积累库PE）
+[2026-11-02 12:31:48] 官方股息率 XLS 000820 20 期（截至 2026-10-30，不写积累库PE）
+[2026-11-02 12:32:09] [数据源] 东财指数行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-02 12:32:16] [数据源] 东财指数行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-02 12:32:16] 东财指数行情不可用，尝试新浪源
+[2026-11-02 12:32:23] [数据源] 东财指数行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-02 12:32:29] [数据源] 东财指数行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-02 12:32:29] 东财指数行情不可用，尝试新浪源
+[2026-11-02 12:32:29] 新浪指数行情数据过期(末日期 2019-01-30)，跳过
+[2026-11-02 12:32:29] 新浪指数行情不可用，尝试腾讯源
+[2026-11-02 12:32:38] [数据源] 东财ETF行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-02 12:32:40] [数据源] 东财ETF行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-02 12:32:40] 东财ETF行情不可用，尝试腾讯源
+[2026-11-02 12:32:44] 官方股息率 XLS 000922 20 期（截至 2026-10-30，不写积累库PE）
+[2026-11-02 12:32:49] [数据源] 东财指数行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-02 12:32:57] [数据源] 东财指数行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-02 12:32:57] 东财指数行情不可用，尝试新浪源
+[2026-11-02 12:32:57] 新浪指数行情数据过期(末日期 2019-01-30)，跳过
+[2026-11-02 12:32:57] 新浪指数行情不可用，尝试腾讯源
+[2026-11-02 12:33:05] 红利ETF: 收盘 1.383 | PE 9.22 分位 1Y 100.0% / 3Y 100.0% / 5Y 100.0% (n=250/750/1250) | 官方PE 3808条 | 决策 0分[100%] 暂停新增仓位，优先控制风险
+[2026-11-02 12:33:05] 红利ETF: 价格历史已积累 1662 条 -> price_history_515180.csv
+[2026-11-02 12:33:05] [数据源] 东财ETF行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-02 12:33:08] [数据源] 东财ETF行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-02 12:33:08] 东财ETF行情不可用，尝试腾讯源
+[2026-11-02 12:33:11] 官方股息率 XLS 399986 20 期（截至 2026-10-30，不写积累库PE）
+[2026-11-02 12:33:16] [数据源] 东财指数行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-02 12:33:23] [数据源] 东财指数行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-02 12:33:23] 东财指数行情不可用，尝试新浪源
+[2026-11-02 12:33:24] 银行ETF: 收盘 1.482 | PE 7.59 分位 1Y 96.4% / 3Y 98.8% / 5Y 99.3% (n=250/750/1250) | 官方PE 2926条 | 决策 20分[100%] 暂停新增仓位，优先控制风险
+[2026-11-02 12:33:24] 银行ETF: 价格历史已积累 1315 条 -> price_history_516310.csv
+[2026-11-02 12:33:24] [数据源] 东财ETF行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-02 12:33:26] [数据源] 东财ETF行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-02 12:33:27] 东财ETF行情不可用，尝试腾讯源
+[2026-11-02 12:33:31] 官方股息率 XLS 000820 20 期（截至 2026-10-30，不写积累库PE）
+[2026-11-02 12:33:36] [数据源] 东财指数行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-02 12:33:43] [数据源] 东财指数行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-02 12:33:43] 东财指数行情不可用，尝试新浪源
+[2026-11-02 12:33:44] 新浪指数行情数据过期(末日期 2016-06-13)，跳过
+[2026-11-02 12:33:44] 新浪指数行情不可用，尝试腾讯源
+[2026-11-02 12:33:50] 煤炭ETF: 收盘 1.238 | PE 17.86 分位 1Y 88.8% / 3Y 96.3% / 5Y 97.8% (n=250/750/1250) | 官方PE 3808条 | 决策 0分[100%] 暂停新增仓位，优先控制风险
+[2026-11-02 12:33:50] 煤炭ETF: 价格历史已积累 1617 条 -> price_history_515220.csv
+[2026-11-02 12:34:21] 看板已生成: C:\Users\31109\Doubao\chats\2026-10-29\new-chat\etf_monitor\v3_work\output\etf_dashboard.html
