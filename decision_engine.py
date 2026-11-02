@@ -254,7 +254,7 @@ def decide(trend: dict, val: dict, risk: dict, official_count: int) -> dict:
     else:
         w_t, w_v, w_r = 0.5, 0.0, 0.5
         base = 100 * (w_t * (t if t is not None else 0.5) + w_r * (r if r is not None else 0.5))
-    score = int(round(base))
+    score = max(0, min(100, int(round(base))))   # 钳制到 0-100（看板口径）
     reasons = []
     reasons.append(trend.get("desc") or f"趋势{t_label}")
     if v is not None:

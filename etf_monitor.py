@@ -224,17 +224,54 @@ def get_index_daily(code: str):
     return df
 
 
-def get_index_valuation_csindex(index_code: str):
-    """中证指数官网估值（官方），返回 DataFrame: date, pe, pb, dy 已按日期升序"""
-    df = ak.stock_zh_index_value_csindex(symbol=CSINDEX_MAP.get(index_code, index_code))
-    df = df.rename(columns={"日期": "date", "市盈率1": "pe", "市净率": "pb",
-                            "股息率1": "dy"})
-    # 该文件为降序（新→旧），转升序；市净率/股息率字段可能存在或不存在
-    if "pb" not in df.columns:
-        df["pb"] = np.nan
-    if "dy" not in df.columns:
-        df["dy"] = np.nan
-    return normalize_daily(df, "指数行情")[["date", "pe", "pb", "dy"]]
+def get_index_valuation_csindex(index_code: str, start_date: str = "20050101"):
+    """中证指数官网估值（官方）。
+    优先官网估值图 JSON 接口 indexCsiDsPe：全历史日频 PE（字段 peg/tradeDate，startDate 可指定），
+    一次拉取即可补齐指数上市以来全部官方 PE 观测；失败回退 XLS 静态文件（近20期，市盈率1口径）。
+    返回 DataFrame: date, pe, pb, dy 已按日期升序。
+    """
+    try:
+        import requests as _rq
+        hdrs = {
+            "User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                           "(KHTML, like Gecko) Chrome/120.0 Safari/537.36"),
+            "Referer": f"https://www.csindex.com.cn/zh-CN/indices/index-detail/{index_code}",
+        }
+        url = ("https://www.csindex.com.cn/csindex-home/perf/indexCsiDsPe"
+               f"?indexCode={index_code}&startDate={start_date}&endDate={dt.date.today().strftime('%Y%m%d')}")
+        r = _rq.get(url, headers=hdrs, timeout=20)
+        r.raise_for_status()
+        rows = (r.json() or {}).get("data") or []
+        if rows:
+            df = pd.DataFrame(rows).rename(columns={"tradeDate": "date", "peg": "pe"})
+            df["date"] = pd.to_datetime(df["date"], format="%Y%m%d", errors="coerce")
+            df["pe"] = pd.to_numeric(df["pe"], errors="coerce")
+            df = df.dropna(subset=["date", "pe"])
+            df = df[df["pe"] > 0].sort_values("date").drop_duplicates("date", keep="last").reset_index(drop=True)
+            if not df.empty:
+                df["pb"] = np.nan
+                df["dy"] = np.nan
+                return df[["date", "pe", "pb", "dy"]]
+    except Exception:
+        pass
+    # 回退：XLS 静态文件（近约20期，市盈率1口径）。不写积累库——
+    # 避免与 peg 全历史口径按日期冲突覆盖（详见 README「官方 PE 口径」）。
+    # 返回 None 时由 get_valuation 走积累库兜底展示最近值。
+    try:
+        df = ak.stock_zh_index_value_csindex(symbol=CSINDEX_MAP.get(index_code, index_code))
+        df = df.rename(columns={"日期": "date", "市盈率1": "pe", "市净率": "pb",
+                                "股息率1": "dy"})
+        if "pb" not in df.columns:
+            df["pb"] = np.nan
+        if "dy" not in df.columns:
+            df["dy"] = np.nan
+        df = normalize_daily(df, "指数行情")[["date", "pe", "pb", "dy"]]
+        if not df.empty:
+            log(f"中证估值接口不可用，XLS 回退 {index_code} {len(df)} 期（仅展示，不写积累库）")
+            return None
+    except Exception:
+        pass
+    return None
 
 
 # ============================================================
