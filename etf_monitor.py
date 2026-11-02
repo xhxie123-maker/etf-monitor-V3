@@ -274,6 +274,52 @@ def get_index_valuation_csindex(index_code: str, start_date: str = "20050101"):
     return None
 
 
+def get_index_dy_csindex(index_code: str):
+    """
+    中证官网 XLS 静态文件（近约20期）中的官方股息率（股息率1口径）。
+    仅取股息率字段，不参与 PE 决策口径（避免与 peg 全历史冲突）。
+    返回 DataFrame: date, dy（升序）；失败返回 None。
+    """
+    try:
+        df = ak.stock_zh_index_value_csindex(symbol=CSINDEX_MAP.get(index_code, index_code))
+        df = df.rename(columns={"日期": "date", "股息率1": "dy"})
+        if "dy" not in df.columns or df["dy"].isna().all():
+            return None
+        # 手动归一化（该接口无 close 列，不走 normalize_daily）
+        df["date"] = pd.to_datetime(df["date"], errors="coerce")
+        df["dy"] = pd.to_numeric(df["dy"], errors="coerce")
+        df = df.dropna(subset=["date", "dy"])
+        df = df[["date", "dy"]].sort_values("date").drop_duplicates("date", keep="last").reset_index(drop=True)
+        if not df.empty:
+            log(f"官方股息率 XLS {index_code} {len(df)} 期（截至 {df['date'].iloc[-1].date()}，不写积累库PE）")
+            return df
+    except Exception:
+        pass
+    return None
+
+
+def patch_dy(hist: pd.DataFrame, code: str, name: str, dy_df: "pd.DataFrame | None") -> pd.DataFrame:
+    """
+    把官方 XLS 股息率并入积累库 dy 字段。
+    只填充已有日期行（date+index_code 命中），不插入新行、不覆盖 pe/pb——
+    避免 XLS「市盈率1」口径与 peg 全历史冲突、避免新增 pe=NaN 行干扰决策。
+    """
+    if dy_df is None or dy_df.empty or hist is None or hist.empty:
+        return hist
+    c6 = str(code).zfill(6)
+    patch = dy_df.copy()
+    patch["index_code"] = c6
+    patch["index_name"] = name
+    patch["source"] = "csindex"
+    for _, row in patch.iterrows():
+        d = pd.to_datetime(row["date"])
+        m = (hist["date"] == d) & (hist["index_code"] == c6)
+        if m.any():
+            hist.loc[m, "dy"] = row["dy"]
+    hist = hist.sort_values("date").reset_index(drop=True)
+    return hist
+
+
 # ============================================================
 # 3. 指标计算
 # ============================================================
@@ -564,17 +610,21 @@ def build_signal(name: str, cfg: dict, price: pd.DataFrame, val_latest: dict,
     else:
         dca, dca_color = "暂停定投·仅持有", "#3b82f6"
 
-    # ---- 做T参考（短周期支撑/压力）----
+    # ---- 做T参考（短周期支撑/压力，带来源标签；近→远排序）----
     support = []
     pressure = []
     if not np.isnan(last.get("ma20")):
-        support.append(round(float(last["ma20"]), 4))
+        support.append({"v": round(float(last["ma20"]), 4), "tag": "MA20"})
     if not np.isnan(last.get("boll_low")):
-        support.append(round(float(last["boll_low"]), 4))
+        support.append({"v": round(float(last["boll_low"]), 4), "tag": "布林下轨"})
     if not np.isnan(last.get("boll_up")):
-        pressure.append(round(float(last["boll_up"]), 4))
+        pressure.append({"v": round(float(last["boll_up"]), 4), "tag": "布林上轨"})
     recent_high = float(price["high"].tail(5).max())
-    pressure.append(round(recent_high, 4))
+    pressure.append({"v": round(recent_high, 4), "tag": "5日高"})
+    if not np.isnan(last.get("ma20")) and close < last["ma20"]:
+        pressure.append({"v": round(float(last["ma20"]), 4), "tag": "MA20压力"})
+    support.sort(key=lambda x: x["v"], reverse=True)
+    pressure.sort(key=lambda x: x["v"])
     t_text = ""
     if not np.isnan(rsi):
         # 阈值与信号段统一（TH["rsi_low"]/TH["rsi_high"]），避免两处口径不一致
@@ -864,6 +914,7 @@ def render_dashboard(meta: dict, ratio: dict, etfs: list, macro: dict = None):
   <div class="grid">
   <div class="card decision-card">
     <h3>交易决策简报 <span class="code">综合评分0-100 · 趋势×估值×风险三维 · 每日自动更新</span></h3>
+    <div id="combo-banner"></div>
     <div id="decision-brief"></div>
   </div>
   </div>
@@ -902,9 +953,10 @@ def render_dashboard(meta: dict, ratio: dict, etfs: list, macro: dict = None):
   <div class="foot">
     数据来源：东方财富/腾讯/新浪（行情）· 中证指数官网（官方估值）· 英为财情（国债利率）· 央行（LPR）· 腾讯指数（两市成交）<br>
     PE分位口径：近1年250交易日 / 近3年750 / 近5年1250，样本数为窗口内实际交易日；主信号取近3年。<br>
-    PE 历史序列为估算口径（官方最新PE × 指数点位比例回推，近约20个交易日为官方真实值），分位仅供相对估值参考。<br>
+    PE 历史序列以积累库中证官网官方PE（peg口径，指数上市以来全历史）为主，缺失区间按指数点位比例回推估算，分位仅供相对估值参考。<br>
     V3 决策：估值维度仅使用积累库中证官方PE（≥200条有效记录）参与综合评分，样本不足时该维度标注"数据不足"、不参与决策；<br>
     长期趋势向下或风险过高时不因 RSI 超卖 / PE 低估直接给出强烈买入；综合评分 = 趋势30% × 估值40% × 风险30%（估值缺失时趋势/风险对半）。<br>
+    综合评分=做多友好度（0-100）：越高越适合买入（红色=高分位关注机会，蓝=低分位谨慎）；股息率来自中证官网XLS（近约20期官方口径），与PE数据源分离。<br>
     分批纪律（40/30/30）与 ATR 参考价位为执行参考，非自动止损指令、非保证成交价；回测结果见 backtest.py（信号次日生效，含手续费+滑点）。<br>
     宏观指标为每日自动采集（利率/情绪）与手动维护条目（政策风向）的组合，仅供环境参考。<br>
     本工具仅作数据监测与量化参考，不构成投资建议。市场有风险，投资需谨慎。
@@ -990,6 +1042,18 @@ function briefColor(score) {{
 (function () {{
   const wrap = document.getElementById('decision-brief');
   if (!wrap) return;
+  const combo = document.getElementById('combo-banner');
+  if (combo) {{
+    const sugList = DATA.etfs.map(e => (e.decision || {{}}).suggestion || '');
+    if (sugList.length) {{
+      const allPause = sugList.every(s => s.indexOf('暂停') >= 0);
+      const anyPause = sugList.some(s => s.indexOf('暂停') >= 0);
+      let txt = '';
+      if (allPause) txt = '组合状态：三标的均「暂停新增」→ 保留现金弹药、等待估值回落；持仓较重者可借反弹分批减仓至目标仓位，不追高。';
+      else if (anyPause) txt = '组合状态：部分标的「暂停新增」，关注其估值回落后再分批介入；现金与持仓比例按自身风险偏好管理。';
+      if (txt) combo.innerHTML = '<div style="font-size:12px;line-height:1.6;padding:6px 10px;border-radius:6px;background:#1b2438;border:1px solid #2a3654;color:var(--sub)">' + txt + '</div>';
+    }}
+  }}
   DATA.etfs.forEach(e => {{
     const d = e.decision || {{}};
     const sc = d.score;
@@ -1047,8 +1111,9 @@ DATA.etfs.forEach(e => {{
   const peSamples = w1
     ? `<div class="wins"><span>近1年 样本 <b>${{w1.n}}</b> 期 · ${{w1.start}}~${{w1.end}}</span><span>近3年 样本 <b>${{w3.n}}</b> 期 · ${{w3.start}}~${{w3.end}}</span><span>近5年 样本 <b>${{w5.n}}</b> 期 · ${{w5.start}}~${{w5.end}}</span></div>`
     : '--';
-  const supp = e.support.length ? e.support.map(x=>fmtNum(x,3)).join(' / ') : '--';
-  const pres = e.pressure.length ? e.pressure.map(x=>fmtNum(x,3)).join(' / ') : '--';
+  const tagStyle = 'font-size:10px;color:var(--sub)';
+  const supp = e.support.length ? e.support.map(x=>fmtNum(x.v,3)+`<span style="${{tagStyle}}">(${{x.tag}})</span>`).join(' / ') : '--';
+  const pres = e.pressure.length ? e.pressure.map(x=>fmtNum(x.v,3)+`<span style="${{tagStyle}}">(${{x.tag}})</span>`).join(' / ') : '--';
   const d = e.decision || {{}};
   const sc = d.score;
   const bannerTxt = (d.suggestion || e.conclusion) + (sc===null||sc===undefined ? '' : `（综合评分 ${{sc}}）`);
@@ -1212,6 +1277,20 @@ def main():
 
         val_latest, pe_hist_df, v_src = get_valuation(cfg["index_code"], cfg["index_name"], hist)
         hist = pe_hist_df  # 保持全局历史
+        # 官方股息率补丁：中证 XLS 近20期（仅 dy 字段，不碰 pe/pb 口径）
+        dy_df = safe_call(f"{name}股息率", get_index_dy_csindex, cfg["index_code"])
+        if dy_df is not None and not dy_df.empty:
+            hist = patch_dy(hist, cfg["index_code"], cfg["index_name"], dy_df)
+            try:
+                hist.to_csv(HISTORY_PATH, index=False, encoding="utf-8-sig")
+            except Exception as e:
+                log(f"股息率补丁写盘失败: {e}")
+            # 刷新展示用最新股息率（取最近一个有官方 dy 的日期行）
+            if val_latest is not None:
+                vsub = hist[hist["index_code"] == str(cfg["index_code"]).zfill(6)]
+                vrow = vsub[vsub["dy"].notna()].sort_values("date")
+                if not vrow.empty:
+                    val_latest["dy"] = float(vrow.iloc[-1]["dy"])
         if "官网" not in v_src:
             badges[1]["ok"] = False  # 本次未取到官方估值（沿用积累库/上次数据）
         if "暂无" in v_src:
