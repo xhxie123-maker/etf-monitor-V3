@@ -115,6 +115,22 @@ class DecideTests(unittest.TestCase):
         self.assertIsNone(d["score"])
         self.assertEqual(d["suggestion"], "暂不判断（数据不足）")
 
+    def test_score_clamped_to_0_100(self):
+        # 极端组合（下降+高估+高风险）：加权分可为负，必须钳制到 0
+        t = {"label": "下降", "score": -1.0}
+        v = {"label": "高估", "score": -1.0}
+        r = {"label": "高风险", "score": 0.0}
+        d = de.decide(t, v, r, 300)
+        self.assertEqual(d["score"], 0)
+        self.assertEqual(d["suggestion"], "暂停新增仓位，优先控制风险")
+        # 一般组合不得越界
+        t2 = de.trend_state(1.0, 0.9, 0.8, slope_ma20=0.01)
+        v2 = de.valuation_state(5.0, 300)
+        r2 = {"label": "低风险", "score": 1.0, "desc": "温和", "available": True}
+        d2 = de.decide(t2, v2, r2, 300)
+        self.assertGreaterEqual(d2["score"], 0)
+        self.assertLessEqual(d2["score"], 100)
+
 
 class BatchPlanTests(unittest.TestCase):
     def test_allow_when_ok(self):
