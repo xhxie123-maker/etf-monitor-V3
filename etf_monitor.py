@@ -628,9 +628,10 @@ def build_signal(name: str, cfg: dict, price: pd.DataFrame, val_latest: dict,
         dca, dca_color = "暂停定投·仅持有", "#3b82f6"
 
     # ---- 做T参考（短周期支撑/压力，带来源标签；近→远排序）----
+    # MA20 归属互斥：价格在 MA20 上方→MA20 仅作支撑；下方→仅作压力（避免同价位双标歧义）
     support = []
     pressure = []
-    if not np.isnan(last.get("ma20")):
+    if not np.isnan(last.get("ma20")) and close >= last["ma20"]:
         support.append({"v": round(float(last["ma20"]), 4), "tag": "MA20"})
     if not np.isnan(last.get("boll_low")):
         support.append({"v": round(float(last["boll_low"]), 4), "tag": "布林下轨"})
@@ -832,22 +833,28 @@ def render_dashboard(meta: dict, ratio: dict, etfs: list, macro: dict = None, co
 <title>ETF 智能监测看板</title>
 {echarts_tag}
 <style>
-  :root {{ --bg:#0b1020; --card:#141a2e; --line:#232c46; --text:#e6ebf5; --sub:#8a93ab;
+  :root {{ --bg:#0b1020; --card:#141a2e; --card2:#1a2340; --line:#2a3554; --text:#e8edf7; --sub:#93a0b8;
            --green:#22c55e; --red:#ef4444; }}
   * {{ box-sizing:border-box; margin:0; padding:0; }}
-  body {{ background:var(--bg); color:var(--text);
+  body {{ background:radial-gradient(1200px 560px at 18% -8%, #182241 0%, #0b1020 55%), var(--bg); color:var(--text);
          font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif; padding:18px; }}
   .wrap {{ max-width:1280px; margin:0 auto; }}
-  h1 {{ font-size:22px; font-weight:700; }}
+  h1 {{ font-size:23px; font-weight:800; letter-spacing:.5px;
+        background:linear-gradient(90deg,#ffffff 0%,#9db8ff 100%);
+        -webkit-background-clip:text; background-clip:text; color:transparent; }}
   .header {{ display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;
              gap:10px; margin-bottom:14px; }}
   .header .sub {{ color:var(--sub); font-size:13px; }}
   .badges {{ display:flex; gap:8px; flex-wrap:wrap; }}
-  .badge {{ font-size:12px; padding:3px 10px; border-radius:12px; border:1px solid var(--line); color:var(--sub); }}
-  .badge.ok {{ color:#4ade80; border-color:#166534; }}
-  .badge.warn {{ color:#fbbf24; border-color:#854d0e; }}
+  .badge {{ font-size:12px; padding:4px 12px; border-radius:14px; border:1px solid var(--line); color:var(--sub);
+            background:rgba(255,255,255,.03); }}
+  .badge.ok {{ color:#4ade80; border-color:#166534; background:rgba(34,197,94,.08); }}
+  .badge.warn {{ color:#fbbf24; border-color:#854d0e; background:rgba(251,191,36,.08); }}
   .grid {{ display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }}
-  .card {{ background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; }}
+  .card {{ background:linear-gradient(180deg,#1a2340 0%,#141a2e 100%); border:1px solid var(--line);
+           border-radius:14px; padding:16px; box-shadow:0 2px 8px rgba(0,0,0,.25);
+           transition:border-color .2s ease, box-shadow .2s ease; }}
+  .card:hover {{ border-color:#3a4a78; box-shadow:0 6px 18px rgba(0,0,0,.35); }}
   .card h3 {{ font-size:15px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; }}
   .card h3 .code {{ color:var(--sub); font-weight:400; font-size:12px; }}
   .num-row {{ display:flex; align-items:baseline; gap:10px; margin-bottom:6px; }}
@@ -871,8 +878,8 @@ def render_dashboard(meta: dict, ratio: dict, etfs: list, macro: dict = None, co
   .ratio-mark {{ display:flex; justify-content:space-between; font-size:11px; color:var(--sub); }}
   .macro-card {{ grid-column:span 3; }}
   .macro-row {{ display:flex; gap:14px; flex-wrap:wrap; }}
-  .macro-item {{ flex:1; min-width:200px; background:rgba(255,255,255,0.03); border:1px solid var(--line);
-                 border-radius:8px; padding:10px 12px; }}
+  .macro-item {{ flex:1; min-width:200px; background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02)); border:1px solid var(--line);
+                 border-radius:10px; padding:10px 12px; }}
   .macro-item .k {{ display:block; color:var(--sub); font-size:11px; margin-bottom:5px; }}
   .macro-item .v {{ font-weight:600; font-size:13px; line-height:1.6; }}
   .macro-item .v.ok {{ color:#4ade80; }} .macro-item .v.warn {{ color:#fbbf24; }}
@@ -880,16 +887,16 @@ def render_dashboard(meta: dict, ratio: dict, etfs: list, macro: dict = None, co
   .decision-card {{ grid-column:span 3; }}
   .corr-card {{ grid-column:span 3; }}
   .corr-grid {{ display:flex; gap:14px; flex-wrap:wrap; align-items:stretch; }}
-  .corr-item {{ flex:1; min-width:220px; background:rgba(255,255,255,0.03); border:1px solid var(--line);
-                border-radius:8px; padding:10px 12px; }}
+  .corr-item {{ flex:1; min-width:220px; background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02)); border:1px solid var(--line);
+                border-radius:10px; padding:10px 12px; }}
   .corr-item .k {{ display:block; color:var(--sub); font-size:11px; margin-bottom:5px; }}
   .corr-item .v {{ font-weight:700; font-size:16px; line-height:1.4; }}
   .corr-item .note {{ font-size:11px; color:var(--sub); margin-top:4px; line-height:1.5; }}
   .corr-bar {{ height:6px; border-radius:3px; margin-top:6px; background:#232c46; overflow:hidden; }}
   .corr-bar > div {{ height:100%; border-radius:3px; }}
   .dc-row {{ display:flex; gap:12px; flex-wrap:wrap; margin:10px 0 4px; }}
-  .dc-block {{ flex:1; min-width:210px; background:rgba(255,255,255,0.03); border:1px solid var(--line);
-               border-radius:8px; padding:10px 12px; }}
+  .dc-block {{ flex:1; min-width:210px; background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02)); border:1px solid var(--line);
+               border-radius:10px; padding:10px 12px; }}
   .dc-block .k {{ display:block; color:var(--sub); font-size:11px; margin-bottom:5px; }}
   .dc-block .v {{ font-weight:600; font-size:13px; line-height:1.6; }}
   .scorebar {{ height:8px; border-radius:4px; background:#232c46; margin:6px 0; overflow:hidden; }}
@@ -980,6 +987,7 @@ def render_dashboard(meta: dict, ratio: dict, etfs: list, macro: dict = None, co
       <li>· PE分位40%~70%：减半定投</li>
       <li>· PE分位&gt;70%：暂停定投，仅持底仓</li>
       <li>· 单日大跌&gt;3%可额外加投一份</li>
+      <li>· 引擎估值阈值：低估&lt;30% / 高估&gt;70%（decision_engine PE_LOW/PE_HIGH，用于综合评分估值维度）</li>
     </ul></div>
     <div class="card"><h3>再平衡</h3><ul class="mini" style="list-style:none">
       <li>· 每半年（6月/12月）强制再平衡一次</li>
@@ -990,12 +998,14 @@ def render_dashboard(meta: dict, ratio: dict, etfs: list, macro: dict = None, co
       <li>· 煤炭为强周期品种，仓位上限 40%，切忌单吊</li>
       <li>· 银行低估值弹性小，作为组合压舱石</li>
       <li>· 红利在成长牛市中会跑输大盘，保持组合思维</li>
+      <li>· 自由现金流ETF（159201）为现金流质量成长品种，历史短、官方估值未接入，按 20% 基准仓位执行</li>
       <li>· 所有信号为量化参考，须结合宏观与自身资金状况</li>
     </ul></div>
   </div>
 
   <div class="foot">
-    数据来源：东方财富/腾讯/新浪（行情）· 中证指数官网（官方估值）· 英为财情（国债利率）· 央行（LPR）· 腾讯指数（两市成交）<br>
+    数据来源：东方财富/腾讯/新浪（行情）· 中证指数官网（官方估值）· 国证指数官网（指数概览）· 英为财情（国债利率）· 央行（LPR）· 腾讯指数（两市成交）<br>
+    159201/980092（国证自由现金流）：国证官网无公开估值历史接口，官方 PE/分位不适用；价格样本为上市以来客观上限，技术面/相关性窗口已用满。<br>
     PE分位口径：近1年250交易日 / 近3年750 / 近5年1250，样本数为窗口内实际交易日；主信号取近3年。<br>
     PE 历史序列以积累库中证官网官方PE（peg口径，指数上市以来全历史）为主，缺失区间按指数点位比例回推估算，分位仅供相对估值参考。<br>
     V3 决策：估值维度仅使用积累库中证官方PE（≥200条有效记录）参与综合评分，样本不足时该维度标注"数据不足"、不参与决策；<br>
@@ -1093,7 +1103,7 @@ function briefColor(score) {{
       const allPause = sugList.every(s => s.indexOf('暂停') >= 0);
       const anyPause = sugList.some(s => s.indexOf('暂停') >= 0);
       let txt = '';
-      if (allPause) txt = '组合状态：组合标的均「暂停新增」→ 保留现金弹药、等待估值回落；持仓较重者可借反弹分批减仓至目标仓位，不追高。';
+      if (allPause) txt = '组合状态：组合标的均「暂停新增」→ 保留现金弹药、等待估值回落；闲置资金可配置货币基金/国债逆回购（1-7天）获取流动收益，按再平衡纪律维持底仓；持仓较重者可借反弹分批减仓至目标仓位，不追高。';
       else if (anyPause) txt = '组合状态：部分标的「暂停新增」，关注其估值回落后再分批介入；现金与持仓比例按自身风险偏好管理。';
       if (txt) combo.innerHTML = '<div style="font-size:12px;line-height:1.6;padding:6px 10px;border-radius:6px;background:#1b2438;border:1px solid #2a3654;color:var(--sub)">' + txt + '</div>';
     }}
@@ -1181,11 +1191,14 @@ DATA.etfs.forEach(e => {{
   const w3 = w && w['近3年'] ? w['近3年'] : null;
   const w5 = w && w['近5年'] ? w['近5年'] : null;
   const peInfo = w1
-    ? `PE ${{fmtNum(e.pe)}} · 1年 <b>${{w1.pct}}%</b> / 3年 <b>${{w3.pct}}%</b> / 5年 <b>${{w5.pct}}%</b>`
-    : `PE ${{fmtNum(e.pe)}} · 分位 积累中`;
+    ? `PE ${{fmtNum(e.pe)}} · 1年 <b>${{w1.pct}}%</b> / 3年 <b>${{w3?w3.pct:'--'}}%</b> / 5年 <b>${{w5?w5.pct:'--'}}%</b>`
+    : (e.pe!==null && e.pe!==undefined ? `PE ${{fmtNum(e.pe)}} · 分位 积累中` : 'PE N/A · 官方估值未接入');
+  const priceSample = e.price_n
+    ? `价格样本 <b>${{e.price_n}}</b> 条（${{e.code}} 上市以来${{e.index_n?' · 指数同步积累 '+e.index_n+' 条':''}}）：已达 250日相关性 / 120日均线参考下限；3Y/5Y 窗口与 PE 分位受上市时长限制`
+    : '';
   const peSamples = w1
     ? `<div class="wins"><span>近1年 样本 <b>${{w1.n}}</b> 期 · ${{w1.start}}~${{w1.end}}</span><span>近3年 样本 <b>${{w3.n}}</b> 期 · ${{w3.start}}~${{w3.end}}</span><span>近5年 样本 <b>${{w5.n}}</b> 期 · ${{w5.start}}~${{w5.end}}</span></div>`
-    : '--';
+    : (priceSample ? `<div class="wins">${{priceSample}}</div>` : '--');
   const tagStyle = 'font-size:10px;color:var(--sub)';
   const supp = e.support.length ? e.support.map(x=>fmtNum(x.v,3)+`<span style="${{tagStyle}}">(${{x.tag}})</span>`).join(' / ') : '--';
   const pres = e.pressure.length ? e.pressure.map(x=>fmtNum(x.v,3)+`<span style="${{tagStyle}}">(${{x.tag}})</span>`).join(' / ') : '--';
@@ -1212,7 +1225,8 @@ DATA.etfs.forEach(e => {{
         <span class="k">偏离20日线</span><span class="v">${{e.dev20>0?'+':''}}${{e.dev20.toFixed(1)}}%</span>
         <span class="k">趋势 / 风险</span><span class="v">${{trendTxt2}} · ${{riskTxt2}}</span>
         <span class="k">ATR参考区间</span><span class="v">${{atrTxt2}}</span>
-        <span class="k">做T支撑/压力</span><span class="v">${{supp}} / ${{pres}}</span>
+        <span class="k">做T支撑</span><span class="v" style="color:#22c55e">${{supp}}</span>
+        <span class="k">做T压力</span><span class="v" style="color:#ef4444">${{pres}}</span>
       </div>
       <div class="chips">${{e.signals.map(s=>`<span class="chip">${{s}}</span>`).join('')}}</div>
       ${{e.note?`<div class="mini" style="margin-top:6px;color:#fbbf24;border:1px solid #854d0e;border-radius:6px;padding:6px 8px;background:rgba(251,191,36,0.06)">${{e.note}}</div>`:''}}
@@ -1398,6 +1412,8 @@ def main():
         sig["ma60s"] = [None if pd.isna(x) else round(float(x), 4) for x in tail["ma60"]]
         sig["boll_ups"] = [None if pd.isna(x) else round(float(x), 4) for x in tail["boll_up"]]
         sig["boll_lows"] = [None if pd.isna(x) else round(float(x), 4) for x in tail["boll_low"]]
+        sig["price_n"] = int(len(price_df))
+        sig["index_n"] = int(len(idx_df)) if idx_df is not None else 0
         etfs.append(sig)
         price_rets[name] = price_df.set_index("date")["close"].pct_change().dropna().tail(250)
         w = sig.get("pe_windows") or {}
@@ -1426,6 +1442,25 @@ def main():
             log(f"{name}: 价格历史已积累 {len(merged)} 条 -> {hist_csv.name}")
         except Exception as e:
             log(f"{name}: 价格历史写盘失败 {e}")
+
+        # V3：输出指数日线历史 CSV（样本扩大/交叉验证，每日运行自动积累）
+        if idx_df is not None and not idx_df.empty:
+            try:
+                idx_csv = OUT_DIR / f"index_history_{cfg['index_code']}.csv"
+                prev_idx = None
+                if idx_csv.exists():
+                    try:
+                        prev_idx = pd.read_csv(idx_csv, parse_dates=["date"])
+                    except Exception:
+                        prev_idx = None
+                cur_idx = idx_df[["date", "close"]].copy()
+                cur_idx["date"] = pd.to_datetime(cur_idx["date"])
+                merged_idx = pd.concat([prev_idx, cur_idx], ignore_index=True) if prev_idx is not None and not prev_idx.empty else cur_idx
+                merged_idx = merged_idx.drop_duplicates("date", keep="last").sort_values("date").reset_index(drop=True)
+                merged_idx.to_csv(idx_csv, index=False, encoding="utf-8-sig")
+                log(f"{name}: 指数历史已积累 {len(merged_idx)} 条 -> {idx_csv.name}")
+            except Exception as e:
+                log(f"{name}: 指数历史写盘失败 {e}")
 
     meta["data_date"] = "/".join(sorted(data_dates)) if data_dates else "--"
     meta["badges"] = badges

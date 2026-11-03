@@ -276,7 +276,10 @@ def decide(trend: dict, val: dict, risk: dict, official_count: int) -> dict:
     elif score >= 40:
         suggestion, sug_color = "观望或按既定计划小额定投", "#eab308"
     else:
-        suggestion, sug_color = "暂停新增仓位，优先控制风险", "#3b82f6"
+        if t_label == "上升":
+            suggestion, sug_color = "高估但趋势尚在：持有观察，反弹分批止盈", "#eab308"
+        else:
+            suggestion, sug_color = "暂停新增仓位，优先控制风险", "#3b82f6"
     return {"score": score, "quality": data_quality(trend, val, risk, official_count),
             "suggestion": suggestion, "sug_color": sug_color,
             "reasons": reasons, "trend": t_label, "risk": r_label, "val": val.get("label")}
@@ -317,8 +320,8 @@ def atr_ref(close: float | None, atr: float | None) -> dict:
         "ref_high": round(close + atr, 4),
         "watch_low": round(close - 1.5 * atr, 4),
         "watch_high": round(close + 1.5 * atr, 4),
-        "text": (f"ATR={atr:.4f}（{atr / close * 100:.1f}%），参考波动区间 {close - atr:.4f}~{close + atr:.4f}；"
-                 f"跌破 {close - 1.5 * atr:.4f} 关注企稳，突破 {close + 1.5 * atr:.4f} 关注趋势确认"),
+        "text": (f"ATR={atr:.4f}（{atr / close * 100:.1f}%），参考波动区间=现价±1×ATR：{close - atr:.4f}~{close + atr:.4f}；"
+                 f"跌破 {close - 1.5 * atr:.4f}（-1.5×ATR）关注企稳，突破 {close + 1.5 * atr:.4f}（+1.5×ATR）关注趋势确认"),
     }
 
 
