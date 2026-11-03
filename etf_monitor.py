@@ -2,7 +2,7 @@
 """
 ETF 智能监测工具（V3）
 =====================
-监测标的：515180 红利ETF / 516310 银行ETF / 515220 煤炭ETF
+监测标的：515180 红利ETF / 516310 银行ETF / 515220 煤炭ETF / 159201 自由现金流ETF
 核心指标：价格趋势(MA20/MA60/MA120/BOLL/RSI)、指数估值分位、创业板红利比、
          风险指标(ATR/ADX/波动率/回撤)、交易决策简报(趋势×估值×风险三维)
 输出     ：单窗口可视化看板 output/etf_dashboard.html（浏览器打开即看全部）
@@ -45,13 +45,16 @@ LOG_PATH = OUT_DIR / "run_log.txt"
 # 监测标的：名称 -> 代码（ETF）
 ETF_POOL = {
     "红利ETF": {"code": "515180", "index_code": "000922", "index_name": "中证红利",
-               "color": "#e6b31e", "role": "高股息压舱石", "base_w": 40, "max_w": 60, "min_w": 20},
+               "color": "#e6b31e", "role": "高股息压舱石", "base_w": 30, "max_w": 45, "min_w": 15},
     "银行ETF": {"code": "516310", "index_code": "399986", "index_name": "中证银行",
-               "color": "#3b82f6", "role": "低估值稳息品种", "base_w": 30, "max_w": 40, "min_w": 15},
+               "color": "#3b82f6", "role": "低估值稳息品种", "base_w": 25, "max_w": 35, "min_w": 10},
     "煤炭ETF": {"code": "515220", "index_code": "000820", "index_name": "中证煤炭",
-               "color": "#f97316", "role": "强周期高波动品种", "base_w": 30, "max_w": 40, "min_w": 15,
+               "color": "#f97316", "role": "强周期高波动品种", "base_w": 25, "max_w": 35, "min_w": 10,
                "cyclic": True,
                "note": "强周期行业：盈利下行期 PE 被动抬升，高分位≠高估，需结合煤价位置/盈利与股息率判断；参考做T与仓位纪律而非单纯PE分位"},
+    "自由现金流ETF": {"code": "159201", "index_code": "980092", "index_name": "国证自由现金流",
+               "color": "#14b8a6", "role": "现金流质量成长品种", "base_w": 20, "max_w": 30, "min_w": 10,
+               "note": "2025-02上市、历史<3年：官方PE历史未接入（国证指数官网无公开估值接口），PE分位N/A；以价格/趋势/技术面与组合相关性为主要追踪维度"},
 }
 
 # 创业板红利比 = 创业板指(399006) / 中证红利(000922)
@@ -907,7 +910,7 @@ def render_dashboard(meta: dict, ratio: dict, etfs: list, macro: dict = None, co
   <div class="header">
     <div>
       <h1>ETF 智能监测看板</h1>
-      <div class="sub">红利 515180 · 银行 516310 · 煤炭 515220 ｜ 数据日期 {meta['data_date']} ｜ 生成 {meta['gen_time']}</div>
+      <div class="sub">{(' · '.join(f'{n} {c["code"]}' for n, c in ETF_POOL.items()))} ｜ 数据日期 {meta['data_date']} ｜ 生成 {meta['gen_time']}</div>
     </div>
     <div class="badges" id="badges"></div>
   </div>
@@ -960,7 +963,7 @@ def render_dashboard(meta: dict, ratio: dict, etfs: list, macro: dict = None, co
   </div>
   </div>
 
-  <!-- 三只 ETF 卡片 -->
+  <!-- ETF 卡片（由 ETF_POOL 循环生成） -->
   <div class="grid etf-grid" id="etf-cards"></div>
 
   <!-- 价格走势 -->
@@ -1090,7 +1093,7 @@ function briefColor(score) {{
       const allPause = sugList.every(s => s.indexOf('暂停') >= 0);
       const anyPause = sugList.some(s => s.indexOf('暂停') >= 0);
       let txt = '';
-      if (allPause) txt = '组合状态：三标的均「暂停新增」→ 保留现金弹药、等待估值回落；持仓较重者可借反弹分批减仓至目标仓位，不追高。';
+      if (allPause) txt = '组合状态：组合标的均「暂停新增」→ 保留现金弹药、等待估值回落；持仓较重者可借反弹分批减仓至目标仓位，不追高。';
       else if (anyPause) txt = '组合状态：部分标的「暂停新增」，关注其估值回落后再分批介入；现金与持仓比例按自身风险偏好管理。';
       if (txt) combo.innerHTML = '<div style="font-size:12px;line-height:1.6;padding:6px 10px;border-radius:6px;background:#1b2438;border:1px solid #2a3654;color:var(--sub)">' + txt + '</div>';
     }}
@@ -1161,8 +1164,8 @@ function briefColor(score) {{
   }});
   html += '<div class="corr-item" style="flex:0 0 260px"><span class="k">解读</span>' +
     '<span class="v" style="font-size:12px;font-weight:400;line-height:1.7">' +
-    (avg >= 0.7 ? '组合整体高相关（均值 ' + avg.toFixed(2) + '）：三标的同属高股息/周期风格，分散效果有限，注意同涨同跌风险；' + (n ? '样本 ' + n + ' 个交易日。' : '') :
-     avg >= 0.4 ? '组合中等相关（均值 ' + avg.toFixed(2) + '）：具备一定分散度，但仍以高股息风格为主。' + (n ? '样本 ' + n + ' 个交易日。' : '') :
+    (avg >= 0.7 ? '组合整体高相关（均值 ' + avg.toFixed(2) + '）：组合标的风格趋同，分散效果有限，注意同涨同跌风险；' + (n ? '样本 ' + n + ' 个交易日。' : '') :
+     avg >= 0.4 ? '组合中等相关（均值 ' + avg.toFixed(2) + '）：具备一定分散度，但部分标的风格相近。' + (n ? '样本 ' + n + ' 个交易日。' : '') :
      '组合相关性较低（均值 ' + avg.toFixed(2) + '）：分散效果较好。' + (n ? '样本 ' + n + ' 个交易日。' : '')) +
     '</span></div>';
   box.innerHTML = html;
@@ -1336,7 +1339,7 @@ def main():
     # ---- 估值历史库 ----
     hist = load_history()
 
-    # ---- 三只 ETF ----
+    # ---- ETF 池逐标的数据采集与信号构建 ----
     etfs = []
     data_dates = set()
     price_rets = {}   # 组合相关性：近250交易日日收益
