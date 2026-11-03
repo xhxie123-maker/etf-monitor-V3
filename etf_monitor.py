@@ -2,17 +2,18 @@
 """
 ETF 智能监测工具（V3）
 =====================
-监测标的：515180 红利ETF / 516310 银行ETF / 515220 煤炭ETF / 159201 自由现金流ETF
+监测标的：515180 红利ETF / 516310 银行ETF / 515220 煤炭ETF / 159201 自由现金流ETF / 563020 红利低波ETF
 核心指标：价格趋势(MA20/MA60/MA120/BOLL/RSI)、指数估值分位、创业板红利比、
          风险指标(ATR/ADX/波动率/回撤)、交易决策简报(趋势×估值×风险三维)
 输出     ：单窗口可视化看板 output/etf_dashboard.html（浏览器打开即看全部）
 用法     ：python etf_monitor.py [--open]
           --open 生成后自动打开浏览器看板
-数据源   ：东方财富/腾讯/新浪(行情回退链)、中证指数官网(官方估值)、日频PE序列(官方最新PE×价格比估算)
+数据源   ：东方财富/腾讯/新浪(行情回退链)、中证指数官网(官方估值+中证系指数官方日线)、日频PE序列(官方最新PE×价格比估算)
 分位口径 ：近1年/近3年/近5年三窗口滚动分位，主信号取近3年；分位旁标注样本数(交易日)与时间跨度
 V3 决策  ：估值维度仅使用积累库官方PE(≥200条)参与决策，样本不足标注"数据不足"不硬算；
           长期趋势向下或风险过高时不因RSI超卖/PE低估给强烈买入；
           看板含综合评分(0-100)、数据完整度、分批建仓纪律、ATR参考价位。
+专属指标 ：每只标的按角色构建针对性监测维度（股息率-10Y利差/焦煤期货/价格结构/低波超额等）。
 说明     ：本工具仅为数据监测与量化参考，不构成投资建议。
 """
 import os
@@ -45,16 +46,19 @@ LOG_PATH = OUT_DIR / "run_log.txt"
 # 监测标的：名称 -> 代码（ETF）
 ETF_POOL = {
     "红利ETF": {"code": "515180", "index_code": "000922", "index_name": "中证红利",
-               "color": "#e6b31e", "role": "高股息压舱石", "base_w": 30, "max_w": 45, "min_w": 15},
+               "color": "#e6b31e", "role": "高股息压舱石", "base_w": 25, "max_w": 40, "min_w": 12},
     "银行ETF": {"code": "516310", "index_code": "399986", "index_name": "中证银行",
-               "color": "#3b82f6", "role": "低估值稳息品种", "base_w": 25, "max_w": 35, "min_w": 10},
+               "color": "#3b82f6", "role": "低估值稳息品种", "base_w": 20, "max_w": 30, "min_w": 8},
     "煤炭ETF": {"code": "515220", "index_code": "000820", "index_name": "中证煤炭",
-               "color": "#f97316", "role": "强周期高波动品种", "base_w": 25, "max_w": 35, "min_w": 10,
+               "color": "#f97316", "role": "强周期高波动品种", "base_w": 20, "max_w": 30, "min_w": 8,
                "cyclic": True,
                "note": "强周期行业：盈利下行期 PE 被动抬升，高分位≠高估，需结合煤价位置/盈利与股息率判断；参考做T与仓位纪律而非单纯PE分位"},
     "自由现金流ETF": {"code": "159201", "index_code": "980092", "index_name": "国证自由现金流",
-               "color": "#14b8a6", "role": "现金流质量成长品种", "base_w": 20, "max_w": 30, "min_w": 10,
+               "color": "#14b8a6", "role": "现金流质量成长品种", "base_w": 15, "max_w": 25, "min_w": 8,
                "note": "2025-02上市、历史<3年：官方PE历史未接入（国证指数官网无公开估值接口），PE分位N/A；以价格/趋势/技术面与组合相关性为主要追踪维度"},
+    "红利低波ETF": {"code": "563020", "index_code": "H30269", "index_name": "中证红利低波动",
+               "color": "#a78bfa", "role": "低波红利压舱石", "base_w": 20, "max_w": 30, "min_w": 10,
+               "note": "2023-12上市（约3年）；指数基日2005-12-30、官方PE全历史可用（中证官网indexCsiDsPe，2013-12起），估值分位完整；以低波动+高股息为特征，年化波动率与相对红利超额（vs红利ETF 515180）为专属观察维度"},
 }
 
 # 创业板红利比 = 创业板指(399006) / 中证红利(000922)
@@ -69,7 +73,7 @@ PRICE_YEARS = 5
 PE_WINDOWS = {"近1年": 250, "近3年": 750, "近5年": 1250}
 PE_MAIN_WINDOW = "近3年"   # 主信号（估值打分/定投档位/长期仓位）使用的窗口
 # 指数估值来源代码（中证指数官网）
-CSINDEX_MAP = {"000922": "000922", "399986": "399986", "000820": "000820"}
+CSINDEX_MAP = {"000922": "000922", "399986": "399986", "000820": "000820", "H30269": "H30269"}
 
 # 信号阈值
 TH = {
@@ -184,6 +188,37 @@ def get_etf_daily(code: str):
     return df
 
 
+def get_index_daily_csindex(code: str):
+    """指数日线（中证官网官方，中证系指数专用）。
+    腾讯/新浪/东财对 H30269 等中证指数代码均无日线数据，中证官网 index-perf 接口提供官方全历史。
+    返回 DataFrame: date/open/high/low/close 按日期升序。"""
+    try:
+        import requests as _rq
+        hdrs = {
+            "User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                           "(KHTML, like Gecko) Chrome/120.0 Safari/537.36"),
+            "Referer": f"https://www.csindex.com.cn/zh-CN/indices/index-detail/{code}",
+        }
+        url = ("https://www.csindex.com.cn/csindex-home/perf/index-perf"
+               f"?indexCode={code}&startDate=20050101&endDate={dt.date.today().strftime('%Y%m%d')}")
+        r = _rq.get(url, headers=hdrs, timeout=20)
+        r.raise_for_status()
+        rows = (r.json() or {}).get("data") or []
+        if not rows:
+            return None
+        df = pd.DataFrame(rows).rename(columns={"tradeDate": "date", "open": "open",
+                                                "high": "high", "low": "low", "close": "close"})
+        df["date"] = pd.to_datetime(df["date"], format="%Y%m%d", errors="coerce")
+        for c in ["open", "high", "low", "close"]:
+            df[c] = pd.to_numeric(df[c], errors="coerce")
+        df = df.dropna(subset=["date", "close"]).sort_values("date")
+        df = df.drop_duplicates("date", keep="last").reset_index(drop=True)
+        return df[["date", "open", "high", "low", "close"]]
+    except Exception as e:
+        log(f"中证官网指数行情获取失败: {e}")
+        return None
+
+
 def get_index_daily_em(code: str):
     """指数日线（东方财富）"""
     end = dt.date.today().strftime("%Y%m%d")
@@ -214,8 +249,14 @@ def get_index_daily_tx(code: str):
 
 
 def get_index_daily(code: str):
-    """指数日线：东财优先，失败依次切新浪、腾讯；
+    """指数日线：中证系指数（CSINDEX_MAP 内）优先中证官网官方日线（H30269 等腾讯/新浪/东财均无），
+    失败回退常规链；常规链东财优先，失败依次切新浪、腾讯；
     新浪源部分指数停更（如 000922 只到 2019），过期数据视为失败继续下探"""
+    if str(code) in CSINDEX_MAP:
+        df = safe_call("中证官网指数行情", get_index_daily_csindex, code, attempts=1)
+        if df is not None and not df.empty:
+            return df
+        log("中证官网指数行情不可用，回退常规通道")
     df = safe_call("东财指数行情", get_index_daily_em, code, attempts=2)
     if df is None:
         log("东财指数行情不可用，尝试新浪源")
@@ -697,6 +738,114 @@ def build_signal(name: str, cfg: dict, price: pd.DataFrame, val_latest: dict,
 
 
 # ============================================================
+# 4b. 每标的针对性监测指标（专属维度，随标的角色差异化）
+# ============================================================
+def get_coal_futures():
+    """焦煤主力连续(JM0)日线（新浪期货）——煤炭行业景气 proxy。
+    焦煤/焦炭价格是煤炭板块盈利与估值的核心驱动，用于强周期标的的专属观察。"""
+    df = safe_call("焦煤主力行情", ak.futures_main_sina, "JM0", attempts=1)
+    if df is None or df.empty:
+        return None
+    df = df.rename(columns={"日期": "date", "收盘价": "close"})
+    df["date"] = pd.to_datetime(df["date"])
+    df["close"] = pd.to_numeric(df["close"], errors="coerce")
+    df = df.dropna(subset=["date", "close"]).sort_values("date").reset_index(drop=True)
+    return df[["date", "close"]]
+
+
+def build_special(name: str, cfg: dict, price: pd.DataFrame, val_latest: dict,
+                  macro: dict, price_rets: dict):
+    """按标的角色构建针对性监测指标（区别于通用 M1-M5 的专属维度）。
+    返回 {"rows": [{"k": ..., "v": ..., "note": ...}]} 或 None。
+    数据源均已实测：中证官网股息率XLS / 宏观10Y国债 / 新浪焦煤期货 / 本地价格序列。"""
+    rows = []
+    dy = (val_latest or {}).get("dy")
+    y10 = (macro or {}).get("y10")
+
+    # 通用维度1：股息率-10Y国债利差（红利/银行/煤炭/红利低波 均适用，衡量股息相对无风险利率吸引力）
+    if dy is not None and not np.isnan(dy) and y10 is not None:
+        spread = float(dy) - float(y10)
+        if spread > 2.0:
+            note = ">2pp，股息吸引力强"
+        elif spread > 0:
+            note = "股息仍高于无风险利率"
+        else:
+            note = "股息吸引力弱于无风险利率"
+        rows.append({"k": "股息率-10Y利差", "v": f"{dy:.2f}% - {y10:.2f}% = {spread:+.2f}pp", "note": note})
+
+    if name == "银行ETF":
+        # 银行估值惯例看 PB，但中证官网仅提供 PE 口径（indexCsiDsPe 无 PB 字段），如实标注
+        rows.append({"k": "PB 估值分位", "v": "数据源受限",
+                     "note": "中证官网无PB历史接口，银行估值暂以PE分位+股息率替代，勿混用口径"})
+
+    elif name == "煤炭ETF":
+        # 焦煤主力连续：煤价位置是周期股估值的锚（周期行业盈利/PE 分位随煤价摆动）
+        jm = get_coal_futures()
+        if jm is not None and len(jm) >= 21:
+            last_jm = float(jm["close"].iloc[-1])
+            jm_d = jm.set_index("date")["close"]
+            chg_m = (last_jm / float(jm_d.iloc[-21]) - 1) * 100      # 近21交易日(约1月)
+            chg_3m = (last_jm / float(jm_d.iloc[-63]) - 1) * 100 if len(jm) >= 63 else None
+            hi60 = float(jm_d.tail(60).max()); lo60 = float(jm_d.tail(60).min())
+            pos60 = (last_jm - lo60) / (hi60 - lo60) * 100 if hi60 > lo60 else None
+            v = f"主力{last_jm:.0f}（月{chg_m:+.1f}%）"
+            if chg_3m is not None:
+                v += f" · 3月{chg_3m:+.1f}%"
+            note = f"景气proxy：煤价月涨跌{chg_m:+.1f}%"
+            if pos60 is not None:
+                note += f"，60日区间位置{pos60:.0f}%"
+            note += "；煤价下行期PE分位参考意义下降"
+            rows.append({"k": "焦煤主力(JM0)", "v": v, "note": note})
+
+    elif name == "自由现金流ETF":
+        # 上市时间短（2025-02），官方估值未接入：以价格结构统计为专属维度
+        try:
+            c = price["close"].dropna()
+            dd = float((c / c.cummax() - 1).min()) * 100                     # 最大回撤
+            dist_high = (float(c.iloc[-1]) / float(c.max()) - 1) * 100       # 距上市高点
+            tail20 = c.tail(20)
+            n_high20 = int((tail20 >= tail20.cummax()).sum())                 # 20日内触及新高的天数
+            rows.append({"k": "价格结构", "v": f"最大回撤{dd:.1f}% · 距上市高点{dist_high:+.1f}% · 近20日新高{n_high20}天",
+                         "note": "上市时间短，以价格趋势结构替代缺失的估值分位"})
+        except Exception as e:
+            log(f"{name} 价格结构统计失败: {e}")
+
+    elif name == "红利低波ETF":
+        # 低波红利：验证"低波动"特征（年化波动率 vs 中证红利）+ 相对红利超额
+        try:
+            vol_low = float(price["close"].pct_change().tail(60).std() * np.sqrt(252) * 100)
+            red_ret = price_rets.get("红利ETF")
+            if red_ret is not None and len(red_ret) >= 60:
+                vol_red = float(red_ret.tail(60).std() * np.sqrt(252) * 100)
+                v = f"年化波动率{vol_low:.1f}%（中证红利{vol_red:.1f}%）"
+                note = "低波红利核心特征：波动率低于中证红利即具备低波属性"
+                if vol_low < vol_red:
+                    note += "，当前符合"
+                else:
+                    note += "，当前波动偏高，低波属性阶段性失效"
+            else:
+                v = f"年化波动率{vol_low:.1f}%（中证红利--）"
+                note = "红利ETF 行情缺失，暂无法对比低波属性"
+            rows.append({"k": "低波属性", "v": v, "note": note})
+            # 相对红利超额：近250交易日累计收益差（vs 红利ETF 515180）
+            ret_low = float(price["close"].pct_change().tail(250).add(1).prod() - 1) * 100
+            if red_ret is not None and len(red_ret) >= 250:
+                ret_red = float(red_ret.tail(250).add(1).prod() - 1) * 100
+                excess = ret_low - ret_red
+                rows.append({"k": "相对红利超额(250日)", "v": f"{excess:+.1f}pp（{ret_low:+.2f}% vs {ret_red:+.2f}%）",
+                             "note": ">0 跑赢中证红利ETF，低波+高股息在震荡市占优" if excess > 0 else "<0 跑输中证红利ETF，注意风格差异"})
+        except Exception as e:
+            log(f"{name} 低波/超额统计失败: {e}")
+
+    elif name == "红利ETF":
+        # 高股息压舱石：利差已覆盖；补一句股息覆盖口径说明即可
+        rows.append({"k": "股息覆盖", "v": "官网XLS近20期口径",
+                     "note": "股息率为官方近20期快照，非年化预测值；利差随10Y国债每日变动"})
+
+    return {"rows": rows} if rows else None
+
+
+# ============================================================
 # 5. 宏观环境（利率 / 政策 / 情绪）
 # ============================================================
 def get_mkt_amount():
@@ -768,7 +917,12 @@ def get_macro() -> dict:
 
 
 def build_ratio():
-    """创业板红利比 = 创业板指/中证红利，返回最新值+分位+建议+3年序列"""
+    """创业板红利比 = 归一化相对强弱（创业板指/中证红利 各自相对基期涨幅之比），
+    返回最新值+分位+建议+3年序列。
+    口径说明：直接收盘比值因两指数基日/基点不同（399006基日2010-05-31、000922基日2004-12-31）
+    无量纲意义，故取 各自相对合并序列首日(基期) 的涨幅之比；该比值仅反映相对走势强弱，
+    绝对值随基期变动，分位不受基期影响（已实测：不同数据源基期下分位一致）。
+    分位为近3年历史百分位（tail 750），与看板"近3年分位"口径一致。"""
     gem = safe_call("创业板指行情", get_index_daily, GEM_INDEX)
     div = safe_call("中证红利行情", get_index_daily, DIV_INDEX)
     if gem is None or div is None:
@@ -779,6 +933,7 @@ def build_ratio():
     m = m[(m["close_gem"] > 0) & (m["close_div"] > 0)].copy()
     if m.empty:
         return None
+    # 基期 = 两指数合并序列的首个完整交易日（随数据源起点变化，分位不受影响）
     m["ratio"] = (m["close_gem"] / m["close_gem"].iloc[0]) / (m["close_div"] / m["close_div"].iloc[0])
     # 仅取近3年样本（与看板“近3年分位”口径一致；腾讯/新浪源返回全量历史）
     m = m.tail(int(HISTORY_YEARS * 250)).reset_index(drop=True)
@@ -798,6 +953,9 @@ def build_ratio():
         "ratios": [round(x, 4) for x in m["ratio"]],
         "gem_close": [round(x, 2) for x in m["close_gem"]],
         "div_close": [round(x, 2) for x in m["close_div"]],
+        "base_date": str(m["date"].iloc[0].date()),
+        "base_gem": round(float(m["close_gem"].iloc[0]), 2),
+        "base_div": round(float(m["close_div"].iloc[0]), 2),
         "n": len(m),
     }
 
@@ -946,7 +1104,7 @@ def render_dashboard(meta: dict, ratio: dict, etfs: list, macro: dict = None, co
         <div class="ratio-bar"></div>
         <div class="ratio-mark"><span>&lt;30% 成长相对低位</span><span>中段</span><span>&gt;70% 相对高位</span></div>
         <div class="banner" id="ratio-sug" style="margin-top:10px">--</div>
-        <div class="mini">比值=创业板指收盘÷中证红利收盘；分位为近{HISTORY_YEARS}年历史百分位。相对强弱走高=创业板相对中证红利表现更强；分位不代表估值便宜。</div>
+        <div class="mini">相对强弱=创业板指÷中证红利（各自相对基期涨幅之比）；分位为近{HISTORY_YEARS}年历史百分位（基期 <span id="ratio-base">--</span>）。相对强弱走高=创业板相对中证红利表现更强；分位不代表估值便宜度。</div>
       </div>
       <div class="ratio-chart" id="ratio-chart"></div>
     </div>
@@ -998,7 +1156,8 @@ def render_dashboard(meta: dict, ratio: dict, etfs: list, macro: dict = None, co
       <li>· 煤炭为强周期品种，仓位上限 40%，切忌单吊</li>
       <li>· 银行低估值弹性小，作为组合压舱石</li>
       <li>· 红利在成长牛市中会跑输大盘，保持组合思维</li>
-      <li>· 自由现金流ETF（159201）为现金流质量成长品种，历史短、官方估值未接入，按 20% 基准仓位执行</li>
+      <li>· 红利低波ETF（563020）与红利ETF同属红利家族，两者合计基准仓位上限 45%，避免同类过度集中</li>
+      <li>· 自由现金流ETF（159201）为现金流质量成长品种，历史短、官方估值未接入，按 15% 基准仓位执行</li>
       <li>· 所有信号为量化参考，须结合宏观与自身资金状况</li>
     </ul></div>
   </div>
@@ -1006,6 +1165,8 @@ def render_dashboard(meta: dict, ratio: dict, etfs: list, macro: dict = None, co
   <div class="foot">
     数据来源：东方财富/腾讯/新浪（行情）· 中证指数官网（官方估值）· 国证指数官网（指数概览）· 英为财情（国债利率）· 央行（LPR）· 腾讯指数（两市成交）<br>
     159201/980092（国证自由现金流）：国证官网无公开估值历史接口，官方 PE/分位不适用；价格样本为上市以来客观上限，技术面/相关性窗口已用满。<br>
+    563020/H30269（中证红利低波动）：2023-12 上市，指数基日 2005-12-30、官方 PE 全历史可用（中证官网 indexCsiDsPe 自 2013-12 起）；价格样本约3年（指数同步积累），估值分位完整、价格 3Y 窗口基本满。<br>
+    创业板红利比为归一化相对强弱（各自相对基期涨幅之比），基期随数据源起点变化、分位不受影响（实测跨源分位一致）；不构成估值信号。<br>
     PE分位口径：近1年250交易日 / 近3年750 / 近5年1250，样本数为窗口内实际交易日；主信号取近3年。<br>
     PE 历史序列以积累库中证官网官方PE（peg口径，指数上市以来全历史）为主，缺失区间按指数点位比例回推估算，分位仅供相对估值参考。<br>
     V3 决策：估值维度仅使用积累库中证官方PE（≥200条有效记录）参与综合评分，样本不足时该维度标注"数据不足"、不参与决策；<br>
@@ -1064,6 +1225,8 @@ const R = DATA.ratio;
 if (R) {{
   document.getElementById('ratio-val').textContent = R.latest.toFixed(4);
   document.getElementById('ratio-pct').textContent = '历史分位 ' + R.pct + '% (' + R.n + ' 个交易日)';
+  const rb = document.getElementById('ratio-base');
+  if (rb) rb.textContent = R.base_date + '（创业板指 ' + R.base_gem + ' / 中证红利 ' + R.base_div + '）';
   const sug = document.getElementById('ratio-sug');
   sug.textContent = R.sug;
   sug.style.color = R.sug_color;
@@ -1225,6 +1388,7 @@ DATA.etfs.forEach(e => {{
         <span class="k">偏离20日线</span><span class="v">${{e.dev20>0?'+':''}}${{e.dev20.toFixed(1)}}%</span>
         <span class="k">趋势 / 风险</span><span class="v">${{trendTxt2}} · ${{riskTxt2}}</span>
         <span class="k">ATR参考区间</span><span class="v">${{atrTxt2}}</span>
+        ${{e.special ? e.special.rows.map(r=>`<span class="k">${{r.k}}</span><span class="v">${{r.v}}${{r.note?' <span style="font-size:10px;color:var(--sub)">('+r.note+')</span>':''}}</span>`).join('') : ''}}
         <span class="k">做T支撑</span><span class="v" style="color:#22c55e">${{supp}}</span>
         <span class="k">做T压力</span><span class="v" style="color:#ef4444">${{pres}}</span>
       </div>
@@ -1350,6 +1514,9 @@ def main():
         badges[0]["ok"] = False
         log("创业板红利比计算失败（创业板指/中证红利行情缺失）")
 
+    # ---- 宏观环境（一次获取，供专属指标与看板共用）----
+    macro = get_macro()
+
     # ---- 估值历史库 ----
     hist = load_history()
 
@@ -1389,7 +1556,7 @@ def main():
             badges[2]["ok"] = False
 
         # 日频 PE 序列（估算口径：官方最新PE × 指数点位比例回推，官方积累库覆盖近期）
-        # 说明：PE 属于指数（000922/399986/000820），指数日线为真实点位、无复权问题；
+        # 说明：PE 属于指数（000922/399986/000820/H30269），指数日线为真实点位、无复权问题；
         #       ETF 价格受分红/复权因子影响会扭曲 PE 回推，故 PE 序列一律基于指数日线。
         idx_df = safe_call(f"{cfg['index_name']}指数行情", get_index_daily, cfg["index_code"])
         if idx_df is None:
@@ -1404,6 +1571,7 @@ def main():
         pe_hist_official = sub_acc.dropna(subset=["pe"]).copy() if sub_acc is not None and not sub_acc.empty else None
 
         sig = build_signal(name, cfg, price_df, val_latest, pe_series, pe_hist_official)
+        sig["special"] = build_special(name, cfg, price_df, val_latest, macro, price_rets)
         # 图表数据
         tail = price_df.tail(250)
         sig["dates"] = [str(d.date()) for d in tail["date"]]
@@ -1488,7 +1656,7 @@ def main():
             return 0
         return 1
 
-    path = render_dashboard(meta, ratio, etfs, macro=get_macro(), corr=corr)
+    path = render_dashboard(meta, ratio, etfs, macro=macro, corr=corr)
     if path is None:
         return 1
     log(f"看板已生成: {path}")
