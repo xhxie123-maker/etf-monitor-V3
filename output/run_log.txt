@@ -330,3 +330,53 @@
 [2026-11-03 16:32:04] 煤炭ETF: 价格历史已积累 1619 条 -> price_history_515220.csv
 [2026-11-03 16:32:04] 组合相关性(近250个交易日日收益): {'红利ETF×银行ETF': 0.528, '红利ETF×煤炭ETF': 0.773, '银行ETF×煤炭ETF': 0.204, '_n': 250}
 [2026-11-03 16:33:15] 看板已生成: /home/runner/work/etf-monitor-V3/etf-monitor-V3/output/etf_dashboard.html
+[2026-11-03 18:22:30] [数据源] 东财指数行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-03 18:22:32] [数据源] 东财指数行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-03 18:22:32] 东财指数行情不可用，尝试新浪源
+[2026-11-03 18:22:35] [数据源] 东财指数行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-03 18:22:38] [数据源] 东财指数行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-03 18:22:38] 东财指数行情不可用，尝试新浪源
+[2026-11-03 18:22:38] 新浪指数行情数据过期(末日期 2019-01-30)，跳过
+[2026-11-03 18:22:38] 新浪指数行情不可用，尝试腾讯源
+[2026-11-03 18:23:01] [数据源] 东财ETF行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-03 18:23:04] [数据源] 东财ETF行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-03 18:23:04] 东财ETF行情不可用，尝试腾讯源
+[2026-11-03 18:23:20] 官方股息率 XLS 000922 20 期（截至 2026-11-02，不写积累库PE）
+[2026-11-03 18:23:20] [数据源] 东财指数行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-03 18:23:23] [数据源] 东财指数行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-03 18:23:23] 东财指数行情不可用，尝试新浪源
+[2026-11-03 18:23:23] 新浪指数行情数据过期(末日期 2019-01-30)，跳过
+[2026-11-03 18:23:23] 新浪指数行情不可用，尝试腾讯源
+[2026-11-03 18:23:45] 红利ETF: 收盘 1.385 | PE 9.16 分位 1Y 98.8% / 3Y 99.6% / 5Y 99.8% (n=250/750/1250) | 官方PE 3810条 | 决策 0分[100%] 暂停新增仓位，优先控制风险
+[2026-11-03 18:23:45] 红利ETF: 价格历史已积累 1663 条 -> price_history_515180.csv
+[2026-11-03 18:23:47] [数据源] 东财ETF行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-03 18:23:51] [数据源] 东财ETF行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-03 18:23:51] 东财ETF行情不可用，尝试腾讯源
+[2026-11-03 18:24:01] 官方股息率 XLS 399986 20 期（截至 2026-11-02，不写积累库PE）
+[2026-11-03 18:24:02] [数据源] 东财指数行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-03 18:24:05] [数据源] 东财指数行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-03 18:24:05] 东财指数行情不可用，尝试新浪源
+[2026-11-03 18:24:07] 银行ETF: 收盘 1.463 | PE 7.41 分位 1Y 85.5% / 3Y 95.2% / 5Y 97.1% (n=250/750/1250) | 官方PE 2928条 | 决策 20分[100%] 暂停新增仓位，优先控制风险
+[2026-11-03 18:24:07] 银行ETF: 价格历史已积累 1317 条 -> price_history_516310.csv
+[2026-11-03 18:24:09] [数据源] 东财ETF行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-03 18:24:12] [数据源] 东财ETF行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-03 18:24:12] 东财ETF行情不可用，尝试腾讯源
+[2026-11-03 18:24:23] 官方股息率 XLS 000820 20 期（截至 2026-11-02，不写积累库PE）
+[2026-11-03 18:24:24] [数据源] 东财指数行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-03 18:24:28] [数据源] 东财指数行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-03 18:24:28] 东财指数行情不可用，尝试新浪源
+[2026-11-03 18:24:28] 新浪指数行情数据过期(末日期 2016-06-13)，跳过
+[2026-11-03 18:24:28] 新浪指数行情不可用，尝试腾讯源
+[2026-11-03 18:24:46] 煤炭ETF: 收盘 1.215 | PE 16.84 分位 1Y 49.0% / 3Y 83.0% / 5Y 89.8% (n=250/750/1250) | 官方PE 3810条 | 决策 0分[100%] 暂停新增仓位，优先控制风险
+[2026-11-03 18:24:46] 煤炭ETF: 价格历史已积累 1619 条 -> price_history_515220.csv
+[2026-11-03 18:24:47] [数据源] 东财ETF行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-03 18:25:04] [数据源] 东财ETF行情 第2/2次获取失败: ReadTimeout: HTTPSConnectionPool(host='push2his.eastmoney.com', port=443): Read timed out. (read timeout=15)
+[2026-11-03 18:25:04] 东财ETF行情不可用，尝试腾讯源
+[2026-11-03 18:25:13] [数据源] 东财指数行情 第1/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-03 18:25:52] [数据源] 东财指数行情 第2/2次获取失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-03 18:25:52] 东财指数行情不可用，尝试新浪源
+[2026-11-03 18:25:52] 自由现金流ETF 日频PE序列不足(样本0)，分位不可用
+[2026-11-03 18:25:52] 自由现金流ETF: 收盘 1.181 | PE None 分位 1Y None% / 3Y None% / 5Y None% (n=None/None/None) | 官方PE 0条 | 决策 53分[67%] 观望或按既定计划小额定投
+[2026-11-03 18:25:53] 自由现金流ETF: 价格历史已积累 409 条 -> price_history_159201.csv
+[2026-11-03 18:25:53] 组合相关性(近250个交易日日收益): {'红利ETF×银行ETF': 0.513, '红利ETF×煤炭ETF': 0.73, '红利ETF×自由现金流ETF': 0.748, '银行ETF×煤炭ETF': 0.203, '银行ETF×自由现金流ETF': 0.233, '煤炭ETF×自由现金流ETF': 0.531, '_n': 250}
+[2026-11-03 18:27:17] 看板已生成: /home/runner/work/etf-monitor-V3/etf-monitor-V3/output/etf_dashboard.html
