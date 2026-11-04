@@ -34,6 +34,13 @@ jobs:
           mkdir -p libs
           curl -fsSL -o libs/echarts.min.js https://unpkg.com/echarts@5.5.1/dist/echarts.min.js
 
+      - name: Seed valuation history from root (one-shot)
+        run: |
+          if [ -f valuation_history.csv ]; then
+            mkdir -p output
+            mv -f valuation_history.csv output/valuation_history.csv
+          fi
+
       - name: Run monitor
         run: python etf_monitor.py --cloud
 
