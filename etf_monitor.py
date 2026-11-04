@@ -59,7 +59,7 @@ ETF_POOL = {
                "note": "强周期行业：盈利下行期 PE 被动抬升，高分位≠高估，需结合煤价位置/盈利与股息率判断；参考做T与仓位纪律而非单纯PE分位"},
     "自由现金流ETF": {"code": "159201", "index_code": "980092", "index_name": "国证自由现金流",
                "color": "#14b8a6", "role": "现金流质量成长品种", "base_w": 15, "max_w": 25, "min_w": 8,
-               "note": "2025-02上市、历史<3年：官方PE历史未接入（国证指数官网无公开估值接口），PE分位N/A；已接入十大权重加权参考估值(腾讯)与IOPV溢价率作替代观测，仅展示不参与评分；以价格/趋势/技术面与组合相关性为主要追踪维度"},
+               "note": "2025-02上市、历史<3年：官方PE已接入（iFinD全历史播种2016-01起+腾讯日频增量，国证980092指数口径，PE-TTM），估值参与决策评分；另保留十大权重加权参考估值(腾讯)与IOPV溢价率作观测（非官方指数估值、仅参考）；以价格/趋势/技术面与组合相关性为主要追踪维度"},
     "红利低波ETF": {"code": "563020", "index_code": "H30269", "index_name": "中证红利低波动",
                "color": "#a78bfa", "role": "低波红利压舱石", "base_w": 20, "max_w": 30, "min_w": 10,
                "note": "2023-12上市（约3年）；指数基日2005-12-30、官方PE全历史可用（中证官网indexCsiDsPe，2013-12起），估值分位完整；以低波动+高股息为特征，年化波动率与相对红利超额（vs红利ETF 515180）为专属观察维度"},
@@ -204,12 +204,13 @@ def get_etf_daily(code: str):
 
 
 # ------------------------------------------------------------
-# 159201 自由现金流ETF 参考估值（官方估值缺位的替代观测）
+# 159201 自由现金流ETF 参考估值（官方估值已接入后的补充观测）
 # ------------------------------------------------------------
-# 背景：159201 跟踪国证自由现金流指数 980092，国证指数官网无公开估值历史接口，
-#       官方 PE/分位不可得（决策引擎按"估值数据不足"保守处理，不参与评分）。
-#       为补充观测数据：用基金季报前十大权重 × 腾讯个股 PE(TTM)/PB 做加权估算，
-#       并附 IOPV 溢价率。口径：估算值仅参考展示，绝不参与决策评分。
+# 背景：159201 跟踪国证自由现金流指数 980092。官方 PE 已接入决策链路
+#       （iFinD 全历史播种2016-01起 + 腾讯官方指数行情日频增量，见
+#       get_valuation 国证分支/seed_valuation_980092.py）。
+#       下方为补充观测：基金季报前十大权重 × 腾讯个股 PE(TTM)/PB 做加权估算，
+#       并附 IOPV 溢价率。口径：非官方指数估值、仅参考展示，不参与决策评分。
 HOLDINGS_F10_URL = "https://fundf10.eastmoney.com/FundArchivesDatas.aspx?type=jjcc&code=159201&topline=10"
 
 
@@ -244,7 +245,8 @@ def get_holdings_159201(max_n: int = 10):
 
 
 def get_weighted_val_159201():
-    """159201 参考估值：前十大权重（归一化）× 腾讯个股 PE(TTM)/PB + IOPV 溢价率。
+    """159201 补充观测估值：前十大权重（归一化）× 腾讯个股 PE(TTM)/PB + IOPV 溢价率。
+    非官方指数估值、仅参考展示（官方 PE 已由国证980092指数口径接入）。
     返回 {"pe":, "pb":, "n":, "total_w":, "premium":, "iopv":} 或 None。"""
     holdings = get_holdings_159201(10)
     if len(holdings) < 5:
@@ -427,6 +429,52 @@ def get_index_valuation_csindex(index_code: str, start_date: str = "20050101"):
     return None
 
 
+# 国证体系指数（中证官网 indexCsiDsPe 对国证指数必 404）：官方估值走独立源分支
+GUOZHENG_TX = {"980092"}
+
+
+def get_index_valuation_guozheng(index_code: str):
+    """国证体系指数官方估值日频增量（腾讯行情 qt.gtimg.cn，GBK）。
+    980092 专用：腾讯该指数快照即官方口径估值（PE-TTM / PB，时间戳 YYYYMMDDHHMMSS），
+    与 iFinD 全历史最新（2026-11-04 PE=12.9668/PB=1.401）互证。
+    返回 DataFrame(date, pe, pb, dy=NaN) 仅最新 1 行；失败返回 None。
+    说明：仅作每日增量接入积累库；已由 iFinD 播种的同一交易日行不会被覆盖
+    （get_valuation 国证分支用 update_history(skip_existing_dates=True)）。
+    """
+    try:
+        import requests as _rq
+        hdrs = {
+            "User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                           "(KHTML, like Gecko) Chrome/120.0 Safari/537.36"),
+            "Referer": "http://gu.qq.com/",
+        }
+        r = _rq.get("http://qt.gtimg.cn/q=sz980092", headers=hdrs, timeout=8)
+        r.raise_for_status()
+        r.encoding = "gbk"
+        text = r.text
+        body = text.split('="', 1)[1].rsplit('"', 1)[0]
+        f = body.split("~")
+        # 时间戳字段：14 位数字 YYYYMMDDHHMMSS（实测 sz980092 为 20261104161428）
+        ts_idx = next((i for i, x in enumerate(f) if len(x) == 14 and x.isdigit()), None)
+        if ts_idx is None:
+            return None
+        ts = f[ts_idx]
+        d = pd.Timestamp(ts[:8], format="%Y%m%d")
+        # PE-TTM 在时间戳后第 9 个字段、PB 在其后第 4 个（腾讯指数行情快照固定顺序，实测偏移）
+        pe = pd.to_numeric(f[ts_idx + 9], errors="coerce") if ts_idx + 9 < len(f) else np.nan
+        pb = pd.to_numeric(f[ts_idx + 13], errors="coerce") if ts_idx + 13 < len(f) else np.nan
+        if np.isnan(pe) or pe <= 0 or np.isnan(pb) or pb <= 0:
+            return None
+        ratio = pe / pb
+        if not (3 <= ratio <= 30):   # 现金流指数 PE/PB 比值通常在 5~20，异常即弃（防字段错位）
+            return None
+        df = pd.DataFrame({"date": [d], "pe": [float(pe)], "pb": [float(pb)], "dy": [np.nan]})
+        log(f"腾讯官方指数估值增量 {index_code} {ts[:8]} PE={pe:.4f} PB={pb:.4f}")
+        return df
+    except Exception:
+        return None
+
+
 def get_index_dy_csindex(index_code: str):
     """
     中证官网 XLS 静态文件（近约20期）中的官方股息率（股息率1口径）。
@@ -560,9 +608,14 @@ def build_pe_series(price_df, val_latest, acc_hist) -> "pd.Series | None":
 
 def calc_pe_windows(pe_s: "pd.Series | None"):
     """
-    三窗口（近1年/近3年/近5年）PE 分位。
+    三窗口（近1年/近3年/近5年）PE 分位（展示口径）。
+    分位计算前先清洗（clean_pe_series：剔除 PE<=0、1%/99% winsorize），
+    避免 980092 负值段（2019-04~2022）与公告日极端值使分位失真。
     返回 {窗口名: {pct, n, start, end}}；窗口样本不足返回 None；无数据返回 None。
     """
+    if pe_s is None or len(pe_s) == 0:
+        return None
+    pe_s = decision_engine.clean_pe_series(pe_s)
     if pe_s is None or len(pe_s) == 0:
         return None
     out = {}
@@ -597,14 +650,23 @@ def load_history() -> pd.DataFrame:
     return pd.DataFrame(columns=["date", "index_code", "index_name", "pe", "pb", "dy", "source"])
 
 
-def update_history(hist: pd.DataFrame, code: str, name: str, val_df: pd.DataFrame) -> pd.DataFrame:
-    """把本次拉到的估值并入历史库（按 date+index_code 去重）"""
+def update_history(hist: pd.DataFrame, code: str, name: str, val_df: pd.DataFrame,
+                   skip_existing_dates: bool = False, source_tag: str = "csindex") -> pd.DataFrame:
+    """把本次拉到的估值并入历史库（按 date+index_code 去重）。
+    skip_existing_dates=True：跳过该代码已存在的日期（国证腾讯增量不覆盖 iFinD 播种口径）；
+    source_tag：写入 source 字段的标签。"""
     if val_df is None or val_df.empty:
         return hist
     new = val_df.copy()
     new["index_code"] = str(code).zfill(6)
     new["index_name"] = name
-    new["source"] = "csindex"
+    new["source"] = source_tag
+    if skip_existing_dates and hist is not None and not hist.empty:
+        c6 = str(code).zfill(6)
+        existing = set(hist.loc[hist["index_code"] == c6, "date"])
+        new = new[~new["date"].isin(existing)]
+        if new.empty:
+            return hist
     merged = pd.concat([hist, new], ignore_index=True)
     merged["index_code"] = merged["index_code"].astype(str).str.zfill(6)
     merged = merged.drop_duplicates(subset=["date", "index_code"], keep="last")
@@ -621,7 +683,26 @@ def get_valuation(code: str, name: str, hist: pd.DataFrame):
     返回 (latest_dict, history_df, source_desc)
     latest_dict: {date, pe, pb, dy}
     history_df: 该指数 PE 历史(升序)
+    国证体系（980092）走独立官方源分支：iFinD 全历史已播种入积累库
+    （seed_valuation_980092.py，2016-01 起），每日以腾讯官方指数行情
+    （PE-TTM/PB）增量接入；腾讯行不覆盖已播种日期。
     """
+    c6 = str(code).zfill(6)
+    if c6 in GUOZHENG_TX:
+        val = safe_call("腾讯官方指数估值增量", get_index_valuation_guozheng, code)
+        if val is not None and not val.empty:
+            hist = update_history(hist, code, name, val, skip_existing_dates=True, source_tag="tx")
+            src = "腾讯官方指数行情(官方增量)"
+        elif hist is not None and not hist[hist["index_code"] == c6].empty:
+            src = "本地积累库(官方PE全历史)"
+        else:
+            return None, hist, "暂无估值数据"
+        sub = hist[hist["index_code"] == c6].sort_values("date")
+        if sub.empty:
+            return None, hist, src
+        latest = sub.iloc[-1].to_dict()
+        latest["date"] = str(latest["date"])[:10]
+        return latest, hist, src
     val = safe_call("中证指数官网估值", get_index_valuation_csindex, code)
     if val is not None and not val.empty:
         hist = update_history(hist, code, name, val)
@@ -657,13 +738,14 @@ def build_signal(name: str, cfg: dict, price: pd.DataFrame, val_latest: dict,
     pe_pct = w_main["pct"] if w_main else np.nan  # 展示用主分位（近3年，估算口径）
     pe_pcts, pe_dates = [], []
     if pe_series is not None and len(pe_series) > 1:
-        # 近3年滚动窗口分位走势（750 交易日窗口逐点）
-        v = pe_series.tail(1250)
-        idx = v.index
-        for i in range(len(v)):
-            w = v.iloc[max(0, i - (PE_WINDOWS[PE_MAIN_WINDOW] - 1)): i + 1]
-            pe_pcts.append(round(percentile_of(w, float(v.iloc[i])), 1))
-            pe_dates.append(str(idx[i].date()))
+        # 近3年滚动窗口分位走势（先清洗负值/极端值，避免 980092 2022 负值段污染分位图）
+        v = decision_engine.clean_pe_series(pe_series.tail(1250))
+        if v is not None and len(v) > 1:
+            idx = v.index
+            for i in range(len(v)):
+                w = v.iloc[max(0, i - (PE_WINDOWS[PE_MAIN_WINDOW] - 1)): i + 1]
+                pe_pcts.append(round(percentile_of(w, float(v.iloc[i])), 1))
+                pe_dates.append(str(idx[i].date()))
 
     # ---- V3 决策引擎：趋势 × 估值 × 风险 ----
     close = float(last["close"])
@@ -861,10 +943,12 @@ def get_coal_futures():
 
 
 def build_special(name: str, cfg: dict, price: pd.DataFrame, val_latest: dict,
-                  macro: dict, price_rets: dict):
+                  macro: dict, price_rets: dict, official_ctx: dict = None):
     """按标的角色构建针对性监测指标（区别于通用 M1-M5 的专属维度）。
     返回 {"rows": [{"k": ..., "v": ..., "note": ...}]} 或 None。
-    数据源均已实测：中证官网股息率XLS / 宏观10Y国债 / 新浪焦煤期货 / 本地价格序列。"""
+    数据源均已实测：中证官网股息率XLS / 宏观10Y国债 / 新浪焦煤期货 / 本地价格序列。
+    official_ctx: 决策侧官方估值上下文 {"ow_main": 官方主窗口分位, "official_count": 官方PE积累条数}，
+    仅用于 159201 专属行的官方 PE 展示。"""
     rows = []
     dy = (val_latest or {}).get("dy")
     y10 = (macro or {}).get("y10")
@@ -905,15 +989,28 @@ def build_special(name: str, cfg: dict, price: pd.DataFrame, val_latest: dict,
             rows.append({"k": "焦煤主力(JM0)", "v": v, "note": note})
 
     elif name == "自由现金流ETF":
-        # 上市时间短（2025-02），官方估值缺位（国证官网无公开估值接口）：
-        # ① 十大权重加权参考估值（腾讯个股 PE/PB）——替代观测，仅参考展示、不参与评分
-        # ② IOPV 溢价率（场内现价 vs 参考净值）
-        # ③ 价格结构统计（原逻辑保留）
+        # 官方估值已接入（iFinD 全历史播种 + 腾讯日频增量，国证980092指数口径，参与决策评分）：
+        # ① 官方 PE（指数口径）展示（含主窗口分位）
+        # ② 十大权重加权参考估值（腾讯个股 PE/PB）——保留但明确标注非官方、仅参考
+        # ③ IOPV 溢价率（场内现价 vs 参考净值）
+        # ④ 价格结构统计（原逻辑保留）
+        octx = official_ctx or {}
+        if val_latest and not pd.isna(val_latest.get("pe")):
+            ov = f"PE-TTM {float(val_latest['pe']):.2f}"
+            if not pd.isna(val_latest.get("pb")):
+                ov += f" · PB {float(val_latest['pb']):.2f}"
+            ow_main = octx.get("ow_main")
+            if ow_main and ow_main.get("pct") is not None:
+                ov += f" · {PE_MAIN_WINDOW}分位{ow_main['pct']:.0f}%"
+            ocnt = int(octx.get("official_count") or 0)
+            ov_note = ("国证980092指数官方口径 PE-TTM（iFinD 全历史播种2016-01起 + 腾讯日频增量），"
+                       f"官方PE积累{ocnt}条≥200，估值维度已参与决策评分")
+            rows.append({"k": "官方PE(指数口径)", "v": ov, "note": ov_note})
         vref = safe_call(f"{name}加权估值", get_weighted_val_159201)
         if vref is not None:
             SRC_STATS["ok_tx"] += 1
             rows.append({"k": "估值参考(十大权重加权)", "v": f"PE≈{vref['pe']:.1f} · PB≈{vref['pb']:.1f}",
-                         "note": f"前十大权重{vref['n']}只（占净值{vref['total_w']:.1f}%，基金季报口径）加权估算，非官方指数估值，仅参考不参与评分"})
+                         "note": f"前十大权重{vref['n']}只（占净值{vref['total_w']:.1f}%，基金季报口径）加权估算，非官方指数估值、仅参考"})
             if vref.get("premium") is not None:
                 p = vref["premium"]
                 if p > 0.5:
@@ -930,7 +1027,7 @@ def build_special(name: str, cfg: dict, price: pd.DataFrame, val_latest: dict,
             tail20 = c.tail(20)
             n_high20 = int((tail20 >= tail20.cummax()).sum())                 # 20日内触及新高的天数
             rows.append({"k": "价格结构", "v": f"最大回撤{dd:.1f}% · 距上市高点{dist_high:+.1f}% · 近20日新高{n_high20}天",
-                         "note": "上市时间短，以价格趋势结构替代缺失的估值分位"})
+                         "note": "上市时间短（2025-02），以价格趋势结构补充追踪"})
         except Exception as e:
             log(f"{name} 价格结构统计失败: {e}")
 
@@ -1294,14 +1391,14 @@ def render_dashboard(meta: dict, ratio: dict, etfs: list, macro: dict = None, co
       <li>· 银行低估值弹性小，作为组合压舱石</li>
       <li>· 红利在成长牛市中会跑输大盘，保持组合思维</li>
       <li>· 红利低波ETF（563020）与红利ETF同属红利家族，两者合计基准仓位上限 45%，避免同类过度集中</li>
-      <li>· 自由现金流ETF（159201）为现金流质量成长品种，历史短、官方估值未接入，按 15% 基准仓位执行</li>
+      <li>· 自由现金流ETF（159201）为现金流质量成长品种，上市历史短但官方PE已接入（国证980092指数口径），按 15% 基准仓位执行</li>
       <li>· 所有信号为量化参考，须结合宏观与自身资金状况</li>
     </ul></div>
   </div>
 
   <div class="foot">
     数据来源：东方财富/腾讯/新浪（行情）· 中证指数官网（官方估值）· 国证指数官网（指数概览）· 英为财情（国债利率）· 央行（LPR）· 腾讯指数（两市成交）<br>
-    159201/980092（国证自由现金流）：国证官网无公开估值历史接口，官方 PE/分位不适用；已接入替代观测——基金季报前十大权重 × 腾讯个股 PE(TTM)/PB 加权估算参考估值 + IOPV 溢价率（仅展示、不参与决策评分）；价格样本为上市以来客观上限，技术面/相关性窗口已用满。<br>
+    159201/980092（国证自由现金流）：官方PE已接入——iFinD全历史播种（2016-01起，2829个交易日）＋腾讯官方指数行情日频增量（PE-TTM/PB），估值维度已参与决策评分（官方PE积累≥200条）；基金季报前十大权重 × 腾讯个股 PE(TTM)/PB 加权估算参考估值 + IOPV 溢价率保留为补充观测（非官方指数估值、仅参考）；价格样本为上市以来客观上限，技术面/相关性窗口已用满。<br>
     563020/H30269（中证红利低波动）：2023-12 上市，指数基日 2005-12-30、官方 PE 全历史可用（中证官网 indexCsiDsPe 自 2013-12 起）；价格样本约3年（指数同步积累），估值分位完整、价格 3Y 窗口基本满。<br>
     创业板红利比为归一化相对强弱（各自相对基期涨幅之比），基期随数据源起点变化、分位不受影响（实测跨源分位一致）；不构成估值信号。<br>
     PE分位口径：近1年250交易日 / 近3年750 / 近5年1250，样本数为窗口内实际交易日；主信号取近3年。<br>
@@ -1761,6 +1858,13 @@ def main():
             log(f"{name} 指数日线缺失，停止生成日频PE估算，避免复权ETF价格冒充指数点位")
         sub_acc = hist[hist["index_code"] == cfg["index_code"]]
         pe_series = build_pe_series(idx_df, val_latest, sub_acc) if idx_df is not None else None
+        # 官方积累库覆盖比指数日线更早时，展示序列直接用官方全历史
+        # （980092：指数日线仅 2024-09 起约451条，官方积累 2016-01 起 2829 条，
+        #   用官方序列后近3年/近5年分位可用；清洗在 calc_pe_windows 内统一做）
+        if pe_series is not None and sub_acc is not None and not sub_acc.empty:
+            off_s = sub_acc.dropna(subset=["pe"])[["date", "pe"]].sort_values("date")
+            if len(off_s) >= 200 and pd.to_datetime(off_s["date"].iloc[0]) < pd.to_datetime(pe_series.index[0]):
+                pe_series = off_s.set_index("date")["pe"].astype(float)
         if pe_series is None or len(pe_series) < 250:
             badges[2]["ok"] = False
             log(f"{name} 日频PE序列不足(样本{0 if pe_series is None else len(pe_series)})，分位不可用")
@@ -1769,7 +1873,10 @@ def main():
         pe_hist_official = sub_acc.dropna(subset=["pe"]).copy() if sub_acc is not None and not sub_acc.empty else None
 
         sig = build_signal(name, cfg, price_df, val_latest, pe_series, pe_hist_official)
-        sig["special"] = build_special(name, cfg, price_df, val_latest, macro, price_rets)
+        _ow = (sig.get("official_pe_windows") or {})
+        sig["special"] = build_special(name, cfg, price_df, val_latest, macro, price_rets,
+                                       official_ctx={"ow_main": _ow.get(PE_MAIN_WINDOW),
+                                                     "official_count": sig.get("official_pe_count", 0)})
         # 图表数据
         tail = price_df.tail(250)
         sig["dates"] = [str(d.date()) for d in tail["date"]]

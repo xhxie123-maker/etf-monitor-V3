@@ -350,11 +350,33 @@ def atr_ref(close: float | None, atr: float | None) -> dict:
     }
 
 
+def clean_pe_series(pe_series: "pd.Series | None") -> "pd.Series | None":
+    """
+    清洗 PE 序列用于分位计算（国证980092等官方历史含负值/极端值时的必要前置）：
+      1) 剔除 PE<=0（负 PE 无分位经济意义；980092 在 2019-04~2022 大段为负）
+      2) 对正值序列按 1%/99% 分位 winsorize（公告日 TTM 基准切换的极端值如 ±数千不污染参考系）
+    返回清洗后的 Series（index 保留原日期）；空/None 原样返回。
+    """
+    if pe_series is None:
+        return None
+    s = pd.Series(pe_series).dropna()
+    s = s[s > 0]
+    if len(s) < 2:
+        return s
+    lo = float(s.quantile(0.01))
+    hi = float(s.quantile(0.99))
+    if hi > lo:
+        s = s.clip(lo, hi)
+    return s
+
+
 def official_pe_windows(pe_hist: pd.DataFrame | None) -> dict:
     """
     基于积累库官方 PE 序列计算三窗口分位（决策引擎估值维度使用）。
     pe_hist: 该指数官方 PE 历史（含 date, pe），升序。
     返回 {窗口名: {pct,n,start,end}} 或 None；样本不足的窗口为 None；总记录 < PE_MIN_OFFICIAL 返回 None。
+    分位计算前先清洗（clean_pe_series：剔除 PE<=0、1%/99% winsorize），
+    否则 980092 的负值段与公告日极端值会使近5年分位严重失真。
     """
     if pe_hist is None or pe_hist.empty:
         return None
@@ -362,6 +384,9 @@ def official_pe_windows(pe_hist: pd.DataFrame | None) -> dict:
     if len(s) < PE_MIN_OFFICIAL:
         return None
     s = s.set_index(pd.to_datetime(s["date"]))["pe"].astype(float)
+    s = clean_pe_series(s)
+    if s is None or len(s) < PE_MIN_OFFICIAL:
+        return None
     out = {}
     for label, n in PE_WINDOWS.items():
         w = s.tail(n)
