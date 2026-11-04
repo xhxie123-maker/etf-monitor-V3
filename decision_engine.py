@@ -280,14 +280,16 @@ def decide(trend: dict, val: dict, risk: dict, official_count: int) -> dict:
         reasons.append(val.get("desc"))  # 数据不足说明
     reasons.append(risk.get("desc") or f"风险{r_label}")
 
-    # 档位（趋势/风险优先压制买入）
+    # 档位（趋势/风险优先压制买入；估值缺失时禁止直接加档——千问评审二轮D-07/D-09）
     if r_label == "高风险" or t_label == "下降":
         if r_label == "高风险":
             suggestion, sug_color = "暂停新增仓位，优先控制风险", "#3b82f6"
         else:
             suggestion, sug_color = "观望或按既定计划小额定投", "#94a3b8"
-    elif score >= 70 and t_label in ("上升", "震荡") and val.get("label") != "高估":
+    elif score >= 70 and t_label in ("上升", "震荡") and v is not None and val.get("label") != "高估":
         suggestion, sug_color = "允许分批建仓/定投加档", "#ef4444"
+    elif score >= 70 and v is None:
+        suggestion, sug_color = "观望或按既定计划小额定投（估值数据不足）", "#eab308"
     elif score >= 55:
         suggestion, sug_color = "持有为主，等待回踩企稳", "#f97316"
     elif score >= 40:
@@ -322,6 +324,9 @@ def batch_plan(trend: dict, risk: dict, val: dict) -> dict:
     if v_label == "高估":
         return {"status": "暂缓", "color": "#eab308",
                 "text": "估值高估：暂缓新增，等待估值回落或趋势确认"}
+    if v_label == "数据不足":
+        return {"status": "暂缓", "color": "#eab308",
+                "text": "估值数据不足：不机械新增主动仓位，待官方PE积累≥200条后按纪律分批"}
     steps = [
         {"phase": "第一笔", "ratio": "40%", "trigger": "趋势条件仍然成立（当前）"},
         {"phase": "第二笔", "ratio": "30%", "trigger": "回踩 MA20 附近并重新站稳"},

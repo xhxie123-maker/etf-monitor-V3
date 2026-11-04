@@ -43,6 +43,9 @@ DASHBOARD_PATH = OUT_DIR / "etf_dashboard.html"
 HISTORY_PATH = OUT_DIR / "valuation_history.csv"
 LOG_PATH = OUT_DIR / "run_log.txt"
 
+# 行情数据源生效统计（千问评审二轮D-11：看板展示实际生效源，避免“标识ok但实际频繁降级”）
+SRC_STATS = {"ok_em": 0, "ok_tx": 0, "ok_sina": 0, "ok_cs": 0, "fail_em": 0}
+
 # 监测标的：名称 -> 代码（ETF）
 ETF_POOL = {
     "红利ETF": {"code": "515180", "index_code": "000922", "index_name": "中证红利",
@@ -111,7 +114,8 @@ def log(msg: str):
 
 
 def safe_call(name, fn, *args, **kwargs):
-    """带超时与异常捕获的统一调用，失败返回 None；attempts 控制重试次数"""
+    """带超时与异常捕获的统一调用，失败返回 None；attempts 控制重试次数。
+    千问评审二轮D-10：重试过程不逐条刷屏，最终失败仅记一条汇总日志（含错误类型与次数）。"""
     attempts = int(kwargs.pop("attempts", 1))
     last = None
     for i in range(attempts):
@@ -119,9 +123,10 @@ def safe_call(name, fn, *args, **kwargs):
             return fn(*args, **kwargs)
         except Exception as e:
             last = e
-            log(f"[数据源] {name} 第{i + 1}/{attempts}次获取失败: {type(e).__name__}: {str(e)[:120]}")
             if i < attempts - 1:
                 time.sleep(2)
+    if last is not None:
+        log(f"[数据源] {name} {attempts}次尝试均失败: {type(last).__name__}: {str(last)[:120]}")
     return None
 
 
@@ -175,17 +180,25 @@ def get_etf_daily_tx(code: str):
 
 
 def get_etf_daily(code: str):
-    """ETF 日线：东财优先（重试2次），失败依次切腾讯、新浪（腾讯带新鲜度门槛）"""
+    """ETF 日线：东财优先（重试2次），失败依次切腾讯、新浪（腾讯带新鲜度门槛）。
+    同时累计实际生效源（SRC_STATS）供看板展示数据源真实性。"""
     df = safe_call("东财ETF行情", get_etf_daily_em, code, attempts=2)
     if df is None:
+        SRC_STATS["fail_em"] += 2
         log("东财ETF行情不可用，尝试腾讯源")
         df = safe_call("腾讯ETF行情", get_etf_daily_tx, code)
+        if df is not None:
+            SRC_STATS["ok_tx"] += 1
+    else:
+        SRC_STATS["ok_em"] += 1
     if df is not None and df["date"].max() < pd.Timestamp(dt.date.today()) - pd.Timedelta(days=10):
         log(f"腾讯ETF行情数据过期(末日期 {df['date'].max().date()})，跳过")
         df = None
     if df is None:
         log("腾讯ETF行情不可用，尝试新浪源")
         df = safe_call("新浪ETF行情", get_etf_daily_sina, code)
+        if df is not None:
+            SRC_STATS["ok_sina"] += 1
     return df
 
 
@@ -256,18 +269,26 @@ def get_index_daily(code: str):
     if str(code) in CSINDEX_MAP:
         df = safe_call("中证官网指数行情", get_index_daily_csindex, code, attempts=1)
         if df is not None and not df.empty:
+            SRC_STATS["ok_cs"] += 1
             return df
         log("中证官网指数行情不可用，回退常规通道")
     df = safe_call("东财指数行情", get_index_daily_em, code, attempts=2)
     if df is None:
+        SRC_STATS["fail_em"] += 2
         log("东财指数行情不可用，尝试新浪源")
         df = safe_call("新浪指数行情", get_index_daily_sina, code)
+        if df is not None:
+            SRC_STATS["ok_sina"] += 1
+    else:
+        SRC_STATS["ok_em"] += 1
     if df is not None and df["date"].max() < pd.Timestamp(dt.date.today()) - pd.Timedelta(days=10):
         log(f"新浪指数行情数据过期(末日期 {df['date'].max().date()})，跳过")
         df = None
     if df is None:
         log("新浪指数行情不可用，尝试腾讯源")
         df = safe_call("腾讯指数行情", get_index_daily_tx, code)
+        if df is not None:
+            SRC_STATS["ok_tx"] += 1
     return df
 
 
@@ -985,6 +1006,17 @@ def render_dashboard(meta: dict, ratio: dict, etfs: list, macro: dict = None, co
     }
     payload_json = json.dumps(payload, ensure_ascii=False).replace("</", "<\\/")
 
+    # 实际生效行情源摘要（千问评审二轮D-11）：东方财富/腾讯/新浪/中证官网各自成功次数 + 东财失败降级次数
+    _ss = meta.get("src_stats") or {}
+    _parts = []
+    for _lab, _key in (("东方财富", "ok_em"), ("腾讯", "ok_tx"), ("新浪", "ok_sina"), ("中证官网", "ok_cs")):
+        if _ss.get(_key):
+            _parts.append(f"{_lab}×{_ss[_key]}")
+    _src_txt = " · ".join(_parts) if _parts else "未采集"
+    _fail_n = _ss.get("fail_em", 0)
+    src_line = (f'<div class="sub" style="font-size:11px;color:#7c8aa8;margin-top:2px">'
+                f'行情来源(实际生效)：{_src_txt} ｜ 东财本轮失败 {_fail_n} 次已自动降级备用源</div>') if _ss else ""
+
     html = f"""<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -1078,6 +1110,7 @@ def render_dashboard(meta: dict, ratio: dict, etfs: list, macro: dict = None, co
     <div>
       <h1>ETF 智能监测看板</h1>
       <div class="sub">{(' · '.join(f'{n} {c["code"]}' for n, c in ETF_POOL.items()))} ｜ 数据日期 {meta['data_date']} ｜ 生成 {meta['gen_time']}</div>
+      {src_line}
     </div>
     <div class="badges" id="badges"></div>
   </div>
@@ -1237,22 +1270,27 @@ if (R) {{
   const sug = document.getElementById('ratio-sug');
   sug.textContent = R.sug;
   sug.style.color = R.sug_color;
-  const rc = echarts.init(document.getElementById('ratio-chart'));
-  rc.setOption({{
-    backgroundColor:'transparent',
-    grid:{{left:50,right:16,top:20,bottom:30}},
-    tooltip:{{trigger:'axis'}},
-    xAxis:{{type:'category',data:R.dates,axisLabel:{{color:'#8a93ab',fontSize:11}}}},
-    yAxis:{{type:'value',scale:true,axisLabel:{{color:'#8a93ab'}},splitLine:{{lineStyle:{{color:'#232c46'}}}}}},
-    series:[{{
-      type:'line',data:R.ratios,smooth:true,symbol:'none',
-      lineStyle:{{color:'#a78bfa',width:2}},
-      areaStyle:{{color:'rgba(167,139,250,0.12)'}},
-      markLine:{{silent:true,symbol:'none',
-        data:[{{yAxis:1.0,label:{{formatter:'相对基准 1.0',color:'#8a93ab'}},lineStyle:{{color:'#8a93ab',type:'dashed'}}}}]}}
-    }}]
-  }});
-  window.addEventListener('resize', () => rc.resize());
+  const rcBox = document.getElementById('ratio-chart');
+  try {{
+    const rc = echarts.init(rcBox);
+    rc.setOption({{
+      backgroundColor:'transparent',
+      grid:{{left:50,right:16,top:20,bottom:30}},
+      tooltip:{{trigger:'axis'}},
+      xAxis:{{type:'category',data:R.dates,axisLabel:{{color:'#8a93ab',fontSize:11}}}},
+      yAxis:{{type:'value',scale:true,axisLabel:{{color:'#8a93ab'}},splitLine:{{lineStyle:{{color:'#232c46'}}}}}},
+      series:[{{
+        type:'line',data:R.ratios,smooth:true,symbol:'none',
+        lineStyle:{{color:'#a78bfa',width:2}},
+        areaStyle:{{color:'rgba(167,139,250,0.12)'}},
+        markLine:{{silent:true,symbol:'none',
+          data:[{{yAxis:1.0,label:{{formatter:'相对基准 1.0',color:'#8a93ab'}},lineStyle:{{color:'#8a93ab',type:'dashed'}}}}]}}
+      }}]
+    }});
+    window.addEventListener('resize', () => rc.resize());
+  }} catch (err) {{
+    rcBox.innerHTML = '<div style="font-size:11px;color:#fbbf24;padding:10px">图表渲染失败（ECharts未加载），其余内容不受影响</div>';
+  }}
 }}
 
 /* V3 交易决策简报 */
@@ -1301,6 +1339,9 @@ function briefColor(score) {{
     const valMissWarn = (w.val === 0)
       ? '<span style="display:block;font-size:11px;color:#fbbf24;margin-top:4px">⚠ 估值缺失：本评分与官方PE完整标的不可直接横向比较</span>'
       : '';
+    const qualWarn = (d.quality !== undefined && d.quality !== null && d.quality < 100)
+      ? '<span style="display:block;font-size:11px;color:#fbbf24;margin-top:4px">⚠ 数据完整度 ' + d.quality + '%，缺失维度未参与评分，参考性降低</span>'
+      : '';
     const stepsHtml = e.batch && e.batch.steps
       ? e.batch.steps.map(s => `<span class="chip">${{s.phase}} ${{s.ratio}}：${{s.trigger}}</span>`).join('')
       : '';
@@ -1317,6 +1358,7 @@ function briefColor(score) {{
           <span class="k" style="margin-top:4px">权重敏感性</span>
           <span class="v" style="font-weight:400;font-size:11px;color:var(--sub)">${{sensTxt}}</span>
           ${{valMissWarn}}
+          ${{qualWarn}}
         </div>
         <div class="dc-block">
           <span class="k">趋势 / 估值 / 风险</span>
@@ -1367,7 +1409,13 @@ function briefColor(score) {{
      avg >= 0.4 ? '组合中等相关（均值 ' + avg.toFixed(2) + '）：具备一定分散度，但部分标的风格相近。' + (n ? '样本 ' + n + ' 个交易日。' : '') :
      '组合相关性较低（均值 ' + avg.toFixed(2) + '）：分散效果较好。' + (n ? '样本 ' + n + ' 个交易日。' : '')) +
     '</span></div>';
-  box.innerHTML = html;
+  // 高相关警示（千问评审二轮D-19：>0.8 的高相关对显式警示，不只展示均值）
+  const highPairs = pairs.filter(k => (C[k] || 0) >= 0.8);
+  if (highPairs.length) {{
+    box.innerHTML = '<div class="corr-item" style="flex:0 0 100%;border-color:#7f1d1d"><span class="k">高相关警示</span><span class="v" style="font-size:12px;font-weight:400;color:#ef4444;line-height:1.7">' + highPairs.map(k => k + ' <b>' + C[k].toFixed(2) + '</b>').join('；') + '：同涨同跌，组合分散度下降、集中风险上升，建议按再平衡纪律控制该类仓位。</span></div>' + html;
+  }} else {{
+    box.innerHTML = html;
+  }}
 }})();
 
 /* ETF 卡片 */
@@ -1439,25 +1487,30 @@ DATA.etfs.forEach(e => {{
   div.innerHTML = `<h3>${{e.name}} 价格走势 <span class="code">近250交易日·收盘/MA20/MA60/布林带</span></h3>
     <div class="chart tall" id="pc-${{e.code}}"></div>`;
   pcEl.appendChild(div);
-  const chart = echarts.init(document.getElementById('pc-' + e.code));
-  const dates = e.dates, close = e.closes, ma20 = e.ma20s, ma60 = e.ma60s,
-        bup = e.boll_ups, blow = e.boll_lows;
-  chart.setOption({{
-    backgroundColor:'transparent',
-    grid:{{left:50,right:16,top:20,bottom:30}},
-    tooltip:{{trigger:'axis'}},
-    legend:{{data:['收盘','MA20','MA60','布林上','布林下'],textStyle:{{color:'#8a93ab',fontSize:10}},top:0}},
-    xAxis:{{type:'category',data:dates,axisLabel:{{color:'#8a93ab',fontSize:10,hideOverlap:true}}}},
-    yAxis:{{type:'value',scale:true,axisLabel:{{color:'#8a93ab',fontSize:10}},splitLine:{{lineStyle:{{color:'#232c46'}}}}}},
-    series:[
-      {{name:'布林上',type:'line',data:bup,symbol:'none',lineStyle:{{color:'#475569',width:1,type:'dashed'}},stack:'b'}},
-      {{name:'布林下',type:'line',data:blow,symbol:'none',lineStyle:{{color:'#475569',width:1,type:'dashed'}},stack:'b'}},
-      {{name:'MA20',type:'line',data:ma20,symbol:'none',lineStyle:{{color:'#f59e0b',width:1}}}},
-      {{name:'MA60',type:'line',data:ma60,symbol:'none',lineStyle:{{color:'#10b981',width:1}}}},
-      {{name:'收盘',type:'line',data:close,symbol:'none',lineStyle:{{color:e.color,width:2}},areaStyle:{{color:'rgba(255,255,255,0.03)'}}}}
-    ]
-  }});
-  window.addEventListener('resize', () => chart.resize());
+  const chartDiv = document.getElementById('pc-' + e.code);
+  try {{
+    const chart = echarts.init(chartDiv);
+    const dates = e.dates, close = e.closes, ma20 = e.ma20s, ma60 = e.ma60s,
+          bup = e.boll_ups, blow = e.boll_lows;
+    chart.setOption({{
+      backgroundColor:'transparent',
+      grid:{{left:50,right:16,top:20,bottom:30}},
+      tooltip:{{trigger:'axis'}},
+      legend:{{data:['收盘','MA20','MA60','布林上','布林下'],textStyle:{{color:'#8a93ab',fontSize:10}},top:0}},
+      xAxis:{{type:'category',data:dates,axisLabel:{{color:'#8a93ab',fontSize:10,hideOverlap:true}}}},
+      yAxis:{{type:'value',scale:true,axisLabel:{{color:'#8a93ab',fontSize:10}},splitLine:{{lineStyle:{{color:'#232c46'}}}}}},
+      series:[
+        {{name:'布林上',type:'line',data:bup,symbol:'none',lineStyle:{{color:'#475569',width:1,type:'dashed'}},stack:'b'}},
+        {{name:'布林下',type:'line',data:blow,symbol:'none',lineStyle:{{color:'#475569',width:1,type:'dashed'}},stack:'b'}},
+        {{name:'MA20',type:'line',data:ma20,symbol:'none',lineStyle:{{color:'#f59e0b',width:1}}}},
+        {{name:'MA60',type:'line',data:ma60,symbol:'none',lineStyle:{{color:'#10b981',width:1}}}},
+        {{name:'收盘',type:'line',data:close,symbol:'none',lineStyle:{{color:e.color,width:2}},areaStyle:{{color:'rgba(255,255,255,0.03)'}}}}
+      ]
+    }});
+    window.addEventListener('resize', () => chart.resize());
+  }} catch (err) {{
+    chartDiv.innerHTML = '<div style="font-size:11px;color:#fbbf24;padding:10px">价格图渲染失败（ECharts未加载），其余内容不受影响</div>';
+  }}
 }});
 
 /* 估值分位图 */
@@ -1469,18 +1522,23 @@ DATA.etfs.forEach(e => {{
   div.innerHTML = `<h3>${{e.name}} 估值分位走势 <span class="code">PE分位·近3年滚动窗口(750交易日)</span></h3>
     <div class="chart" style="height:170px" id="pe-${{e.code}}"></div>`;
   peEl.appendChild(div);
-  const chart = echarts.init(document.getElementById('pe-' + e.code));
-  chart.setOption({{
-    backgroundColor:'transparent',
-    grid:{{left:40,right:14,top:16,bottom:24}},
-    tooltip:{{trigger:'axis'}},
-    xAxis:{{type:'category',data:e.pe_dates,axisLabel:{{show:false}}}},
-    yAxis:{{type:'value',min:0,max:100,axisLabel:{{color:'#8a93ab',fontSize:10,formatter:'{{value}}%'}},
-            splitLine:{{lineStyle:{{color:'#232c46'}}}}}},
-    series:[{{type:'line',data:e.pe_pcts,symbol:'none',lineStyle:{{color:'rgba(148,163,184,0.85)',width:1}},
-             areaStyle:{{color:'rgba(148,163,184,0.12)'}}}}]
-  }});
-  window.addEventListener('resize', () => chart.resize());
+  const peDiv = document.getElementById('pe-' + e.code);
+  try {{
+    const chart = echarts.init(peDiv);
+    chart.setOption({{
+      backgroundColor:'transparent',
+      grid:{{left:40,right:14,top:16,bottom:24}},
+      tooltip:{{trigger:'axis'}},
+      xAxis:{{type:'category',data:e.pe_dates,axisLabel:{{show:false}}}},
+      yAxis:{{type:'value',min:0,max:100,axisLabel:{{color:'#8a93ab',fontSize:10,formatter:'{{value}}%'}},
+              splitLine:{{lineStyle:{{color:'#232c46'}}}}}},
+      series:[{{type:'line',data:e.pe_pcts,symbol:'none',lineStyle:{{color:'rgba(148,163,184,0.85)',width:1}},
+               areaStyle:{{color:'rgba(148,163,184,0.12)'}}}}]
+    }});
+    window.addEventListener('resize', () => chart.resize());
+  }} catch (err) {{
+    peDiv.innerHTML = '<div style="font-size:11px;color:#fbbf24;padding:10px">估值图渲染失败（ECharts未加载），其余内容不受影响</div>';
+  }}
 }});
 </script>
 </body>
@@ -1533,6 +1591,14 @@ def render_fallback(meta: dict):
 # ============================================================
 def main():
     run_at = dt.datetime.now()
+    # 日志轮转（千问评审二轮D-20）：run_log 超限时保留最近 N 行，避免无界增长
+    try:
+        if LOG_PATH.exists():
+            _lines = LOG_PATH.read_text(encoding="utf-8").splitlines()
+            if len(_lines) > 1500:
+                LOG_PATH.write_text("\n".join(_lines[-1200:]) + "\n", encoding="utf-8")
+    except Exception:
+        pass
     cloud_mode = "--cloud" in sys.argv  # 云端(GitHub Actions)容错模式
     meta = {"data_date": "--", "gen_time": run_at.strftime("%Y-%m-%d %H:%M:%S"), "badges": []}
     badges = [{"label": "东方财富行情", "ok": True}, {"label": "中证指数官方估值", "ok": True},
@@ -1670,6 +1736,8 @@ def main():
     for s in etfs:
         s["fresh"] = "ok" if s["latest_date"] == main_date else "lag"
     meta["badges"] = badges
+    # 实际生效行情源统计（千问评审二轮D-11：数据源状态标识与实际一致）
+    meta["src_stats"] = dict(SRC_STATS)
 
     # ---- 组合相关性（近250交易日日收益两两相关系数）----
     corr = {}
