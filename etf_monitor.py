@@ -20,6 +20,7 @@ import os
 import sys
 import json
 import time
+import re
 import datetime as dt
 from pathlib import Path
 
@@ -58,7 +59,7 @@ ETF_POOL = {
                "note": "强周期行业：盈利下行期 PE 被动抬升，高分位≠高估，需结合煤价位置/盈利与股息率判断；参考做T与仓位纪律而非单纯PE分位"},
     "自由现金流ETF": {"code": "159201", "index_code": "980092", "index_name": "国证自由现金流",
                "color": "#14b8a6", "role": "现金流质量成长品种", "base_w": 15, "max_w": 25, "min_w": 8,
-               "note": "2025-02上市、历史<3年：官方PE历史未接入（国证指数官网无公开估值接口），PE分位N/A；以价格/趋势/技术面与组合相关性为主要追踪维度"},
+               "note": "2025-02上市、历史<3年：官方PE历史未接入（国证指数官网无公开估值接口），PE分位N/A；已接入十大权重加权参考估值(腾讯)与IOPV溢价率作替代观测，仅展示不参与评分；以价格/趋势/技术面与组合相关性为主要追踪维度"},
     "红利低波ETF": {"code": "563020", "index_code": "H30269", "index_name": "中证红利低波动",
                "color": "#a78bfa", "role": "低波红利压舱石", "base_w": 20, "max_w": 30, "min_w": 10,
                "note": "2023-12上市（约3年）；指数基日2005-12-30、官方PE全历史可用（中证官网indexCsiDsPe，2013-12起），估值分位完整；以低波动+高股息为特征，年化波动率与相对红利超额（vs红利ETF 515180）为专属观察维度"},
@@ -200,6 +201,90 @@ def get_etf_daily(code: str):
         if df is not None:
             SRC_STATS["ok_sina"] += 1
     return df
+
+
+# ------------------------------------------------------------
+# 159201 自由现金流ETF 参考估值（官方估值缺位的替代观测）
+# ------------------------------------------------------------
+# 背景：159201 跟踪国证自由现金流指数 980092，国证指数官网无公开估值历史接口，
+#       官方 PE/分位不可得（决策引擎按"估值数据不足"保守处理，不参与评分）。
+#       为补充观测数据：用基金季报前十大权重 × 腾讯个股 PE(TTM)/PB 做加权估算，
+#       并附 IOPV 溢价率。口径：估算值仅参考展示，绝不参与决策评分。
+HOLDINGS_F10_URL = "https://fundf10.eastmoney.com/FundArchivesDatas.aspx?type=jjcc&code=159201&topline=10"
+
+
+def get_holdings_159201(max_n: int = 10):
+    """天天基金 F10 持仓明细 → 最近季度前十大 [(code, name, weight_pct)]。
+    返回空列表表示失败/无可解析数据（调用方 safe_call 降级）。"""
+    hdrs = {
+        "User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                       "(KHTML, like Gecko) Chrome/120.0 Safari/537.36"),
+        "Referer": "https://fundf10.eastmoney.com/",
+    }
+    r = requests.get(HOLDINGS_F10_URL, headers=hdrs, timeout=15)
+    r.raise_for_status()
+    m = re.search(r'var apidata=\s*\{ content:"(.*?)"\s*\}', r.text, re.S)
+    html = m.group(1) if m else r.text
+    html = (html.replace('\\"', '"').replace('\\/', '/')
+                .replace('\\n', ' ').replace('\\t', ' '))
+    out = []
+    for row in re.findall(r'<tr>(.*?)</tr>', html, re.S):
+        cells = re.findall(r'<td[^>]*>(.*?)</td>', row, re.S)
+        if len(cells) < 7:
+            continue
+        code_m = re.search(r'>(\d{6})<', cells[1])
+        name = re.sub(r'<[^>]+>', '', cells[2]).strip()
+        w_m = re.search(r'([\d.]+)%', cells[6])
+        if not code_m or not w_m:
+            continue
+        out.append((code_m.group(1), name, float(w_m.group(1))))
+        if len(out) >= max_n:
+            break
+    return out
+
+
+def get_weighted_val_159201():
+    """159201 参考估值：前十大权重（归一化）× 腾讯个股 PE(TTM)/PB + IOPV 溢价率。
+    返回 {"pe":, "pb":, "n":, "total_w":, "premium":, "iopv":} 或 None。"""
+    holdings = get_holdings_159201(10)
+    if len(holdings) < 5:
+        return None
+    total_w = sum(w for _, _, w in holdings)
+    pe_num = pb_num = 0.0
+    n_pe = n_pb = 0
+    ua = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120"}
+    for code, _name, w in holdings:
+        prefix = "sh" if str(code).startswith("6") else "sz"
+        try:
+            rr = requests.get(f"http://qt.gtimg.cn/q={prefix}{code}", headers=ua, timeout=8)
+            f = rr.content.decode("gbk", errors="replace").split('="', 1)[1].rstrip('";\n').split('~')
+        except Exception:
+            continue
+        try:
+            pe = float(f[39]) if len(f) > 39 and f[39] not in ("", "-") else None
+            pb = float(f[43]) if len(f) > 43 and f[43] not in ("", "-") else None
+        except Exception:
+            continue
+        wn = w / total_w
+        if pe is not None:
+            pe_num += wn * pe; n_pe += 1
+        if pb is not None:
+            pb_num += wn * pb; n_pb += 1
+    if n_pe == 0 or n_pb == 0:
+        return None
+    # IOPV 溢价率：159201 场内现价(f3) vs 参考净值/IOPV(f51)
+    premium = iopv = None
+    try:
+        rr = requests.get("http://qt.gtimg.cn/q=sz159201", headers=ua, timeout=8)
+        f = rr.content.decode("gbk", errors="replace").split('="', 1)[1].rstrip('";\n').split('~')
+        price = float(f[3])
+        iopv = float(f[51]) if len(f) > 51 and f[51] not in ("", "-") else None
+        if iopv:
+            premium = (price / iopv - 1) * 100
+    except Exception:
+        premium = iopv = None
+    return {"pe": pe_num, "pb": pb_num, "n": n_pe, "total_w": total_w,
+            "premium": premium, "iopv": iopv}
 
 
 def get_index_daily_csindex(code: str):
@@ -820,7 +905,24 @@ def build_special(name: str, cfg: dict, price: pd.DataFrame, val_latest: dict,
             rows.append({"k": "焦煤主力(JM0)", "v": v, "note": note})
 
     elif name == "自由现金流ETF":
-        # 上市时间短（2025-02），官方估值未接入：以价格结构统计为专属维度
+        # 上市时间短（2025-02），官方估值缺位（国证官网无公开估值接口）：
+        # ① 十大权重加权参考估值（腾讯个股 PE/PB）——替代观测，仅参考展示、不参与评分
+        # ② IOPV 溢价率（场内现价 vs 参考净值）
+        # ③ 价格结构统计（原逻辑保留）
+        vref = safe_call(f"{name}加权估值", get_weighted_val_159201)
+        if vref is not None:
+            SRC_STATS["ok_tx"] += 1
+            rows.append({"k": "估值参考(十大权重加权)", "v": f"PE≈{vref['pe']:.1f} · PB≈{vref['pb']:.1f}",
+                         "note": f"前十大权重{vref['n']}只（占净值{vref['total_w']:.1f}%，基金季报口径）加权估算，非官方指数估值，仅参考不参与评分"})
+            if vref.get("premium") is not None:
+                p = vref["premium"]
+                if p > 0.5:
+                    pnote = "现价相对IOPV溢价，场内买入成本偏高"
+                elif p < -0.2:
+                    pnote = "轻微折价，利于场内买入"
+                else:
+                    pnote = "贴近净值，折溢平稳"
+                rows.append({"k": "IOPV溢价率", "v": f"{p:+.2f}%", "note": pnote})
         try:
             c = price["close"].dropna()
             dd = float((c / c.cummax() - 1).min()) * 100                     # 最大回撤
@@ -1199,7 +1301,7 @@ def render_dashboard(meta: dict, ratio: dict, etfs: list, macro: dict = None, co
 
   <div class="foot">
     数据来源：东方财富/腾讯/新浪（行情）· 中证指数官网（官方估值）· 国证指数官网（指数概览）· 英为财情（国债利率）· 央行（LPR）· 腾讯指数（两市成交）<br>
-    159201/980092（国证自由现金流）：国证官网无公开估值历史接口，官方 PE/分位不适用；价格样本为上市以来客观上限，技术面/相关性窗口已用满。<br>
+    159201/980092（国证自由现金流）：国证官网无公开估值历史接口，官方 PE/分位不适用；已接入替代观测——基金季报前十大权重 × 腾讯个股 PE(TTM)/PB 加权估算参考估值 + IOPV 溢价率（仅展示、不参与决策评分）；价格样本为上市以来客观上限，技术面/相关性窗口已用满。<br>
     563020/H30269（中证红利低波动）：2023-12 上市，指数基日 2005-12-30、官方 PE 全历史可用（中证官网 indexCsiDsPe 自 2013-12 起）；价格样本约3年（指数同步积累），估值分位完整、价格 3Y 窗口基本满。<br>
     创业板红利比为归一化相对强弱（各自相对基期涨幅之比），基期随数据源起点变化、分位不受影响（实测跨源分位一致）；不构成估值信号。<br>
     PE分位口径：近1年250交易日 / 近3年750 / 近5年1250，样本数为窗口内实际交易日；主信号取近3年。<br>
