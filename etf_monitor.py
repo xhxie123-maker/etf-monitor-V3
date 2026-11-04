@@ -92,6 +92,7 @@ MACRO_TH = {
 MACRO_POLICY = {
     "title": "政策风向（手动维护）",
     "text": "当前无新增重大政策信号；关注点：LPR 利率走向、财政发力节奏、行业监管动态。",
+    "date": "2026-11-04",   # 条目最后维护日（DeepSeek评审P3：手动条目需显式时间戳，与自动采集同一新鲜度逻辑）
 }
 
 REQUEST_TIMEOUT = 20
@@ -872,7 +873,8 @@ def get_macro() -> dict:
     任一失败仅置 None，看板显示 '--'，不影响 ETF 主流程。"""
     m = {"y10": None, "y10_chg": None, "y10_label": None, "y10_date": None,
          "lpr1": None, "lpr5": None,
-         "mkt": None, "mkt_ratio": None, "mkt_date": None, "ok": True}
+         "mkt": None, "mkt_ratio": None, "mkt_date": None,
+         "policy_date": MACRO_POLICY.get("date"), "ok": True}
 
     # ---- 利率环境：10Y 国债收益率 ----
     try:
@@ -1172,7 +1174,10 @@ def render_dashboard(meta: dict, ratio: dict, etfs: list, macro: dict = None, co
     V3 决策：估值维度仅使用积累库中证官方PE（≥200条有效记录）参与综合评分，样本不足时该维度标注"数据不足"、不参与决策；<br>
     长期趋势向下或风险过高时不因 RSI 超卖 / PE 低估直接给出强烈买入；综合评分 = 趋势30% × 估值40% × 风险30%（估值缺失时趋势/风险对半）。<br>
     综合评分=做多友好度（0-100）：越高越适合买入（红色=高分位关注机会，蓝=低分位谨慎）；股息率来自中证官网XLS（近约20期官方口径），与PE数据源分离。<br>
-    分批纪律（40/30/30）与 ATR 参考价位为执行参考，非自动止损指令、非保证成交价；回测结果见 backtest.py（信号次日生效，含手续费+滑点）。<br>
+    评分归因透明化：决策简报展示三维子分数（趋势/估值/风险各0-100）与权重敏感性（估值权重40%→30%的评分变化）；估值缺失标的（官方PE&lt;200条）评分与完整数据标的不可直接横向比较。<br>
+    数据新鲜度对账：卡片"行情新/行情滞后"徽章与数据主日期强制对账，行情静默断更时滞后标的会标黄提示，防止旧数据冒充新数据参与判断。<br>
+    高分位集群说明：红利/银行/红利低波同处近5年高分位，系2024-2026红利资产持续走强的真实估值状态而非数据异常；分位仅反映相对估值位置，需结合股息率与利差（专属指标）综合判断。<br>
+    分批纪律（40/30/30）与 ATR 参考价位为执行参考，非自动止损指令、非保证成交价；做T支撑/压力（MA20/布林/近5日高）为统计参考，非保证成交位；回测结果见 backtest.py（信号次日生效，含手续费+滑点）。<br>
     宏观指标为每日自动采集（利率/情绪）与手动维护条目（政策风向）的组合，仅供环境参考。<br>
     本工具仅作数据监测与量化参考，不构成投资建议。市场有风险，投资需谨慎。
   </div>
@@ -1199,7 +1204,9 @@ document.getElementById('badges').innerHTML = badges;
   }}
   const pol = [];
   if (M.lpr1 !== null && M.lpr1 !== undefined) pol.push('LPR 1Y <b>' + M.lpr1.toFixed(1) + '%</b> / 5Y <b>' + M.lpr5.toFixed(1) + '%</b>');
-  if (pol.length) el('macro-policy').innerHTML = pol.join(' ｜ ');
+  if (pol.length) {{
+    el('macro-policy').innerHTML = pol.join(' ｜ ') + (M.policy_date ? '<span style="font-size:10px;color:var(--sub)">（政策条目维护于 ' + M.policy_date + '）</span>' : '');
+  }}
   else el('macro-policy').textContent = 'LPR --（数据暂缺）';
   const mk = M.mkt !== null && M.mkt !== undefined;
   if (mk) {{
@@ -1217,7 +1224,7 @@ document.getElementById('badges').innerHTML = badges;
   }} else {{
     el('macro-mkt').textContent = '两市成交 --（数据暂缺）';
   }}
-  el('macro-note').textContent = '利率/情绪为自动采集口径；政策风向为手动维护条目（每周更新）——详见操作纪律与README。';
+  el('macro-note').textContent = '利率/情绪为自动采集口径；政策风向为手动维护条目（维护日见上，每周更新）——详见操作纪律与README。';
 }})();
 
 /* 创业板红利比 */
@@ -1280,6 +1287,20 @@ function briefColor(score) {{
     const valTxt = d.val || '--';
     const batchTxt = e.batch ? e.batch.text : '--';
     const reasons = (d.reasons || []).join(' ｜ ');
+    // 三维子分数 + 权重敏感性（DeepSeek评审P1：评分归因透明化）
+    const sub = d.sub || {{}};
+    const subParts = ['trend','val','risk'].map(k => {{
+      const lab = k==='trend' ? '趋势' : (k==='val' ? '估值' : '风险');
+      const sv = sub[k];
+      return lab + ' <b>' + (sv===null||sv===undefined ? '--' : sv) + '</b>';
+    }}).join(' · ');
+    const w = d.w || {{}};
+    const sensTxt = (w.val && w.val > 0)
+      ? '估值权重40%→30%时评分 ' + (sc===null||sc===undefined?'--':sc) + ' → ' + (d.score_alt===null||d.score_alt===undefined?'--':d.score_alt)
+      : '估值未参与：权重趋势/风险对半，无敏感性';
+    const valMissWarn = (w.val === 0)
+      ? '<span style="display:block;font-size:11px;color:#fbbf24;margin-top:4px">⚠ 估值缺失：本评分与官方PE完整标的不可直接横向比较</span>'
+      : '';
     const stepsHtml = e.batch && e.batch.steps
       ? e.batch.steps.map(s => `<span class="chip">${{s.phase}} ${{s.ratio}}：${{s.trigger}}</span>`).join('')
       : '';
@@ -1291,6 +1312,11 @@ function briefColor(score) {{
           <span class="v">综合评分 <b style="font-size:20px;color:${{barColor}}">${{sc===null||sc===undefined?'--':sc}}</b><span style="font-size:11px;color:var(--sub)">/100</span></span>
           <div class="scorebar"><div style="width:${{sc===null||sc===undefined?0:sc}}%;background:${{barColor}}"></div></div>
           <span style="font-size:11px;color:var(--sub)">数据完整度 ${{d.quality===undefined||d.quality===null?'--':d.quality+'%'}} · 官方PE ${{e.official_pe_count}}条</span>
+          <span class="k" style="margin-top:5px">三维子分数</span>
+          <span class="v" style="font-weight:400;font-size:12px;line-height:1.5">${{subParts}}</span>
+          <span class="k" style="margin-top:4px">权重敏感性</span>
+          <span class="v" style="font-weight:400;font-size:11px;color:var(--sub)">${{sensTxt}}</span>
+          ${{valMissWarn}}
         </div>
         <div class="dc-block">
           <span class="k">趋势 / 估值 / 风险</span>
@@ -1367,6 +1393,10 @@ DATA.etfs.forEach(e => {{
   const pres = e.pressure.length ? e.pressure.map(x=>fmtNum(x.v,3)+`<span style="${{tagStyle}}">(${{x.tag}})</span>`).join(' / ') : '--';
   const d = e.decision || {{}};
   const sc = d.score;
+  // 数据新鲜度徽章：行情更新日 vs 数据主日期对账（DeepSeek评审P0）
+  const freshTag = e.fresh === 'lag'
+    ? '<span style="font-size:10px;color:#fbbf24;border:1px solid #854d0e;border-radius:8px;padding:1px 6px">行情滞后</span>'
+    : '<span style="font-size:10px;color:#4ade80;border:1px solid #166534;border-radius:8px;padding:1px 6px">行情新</span>';
   const bannerTxt = (d.suggestion || e.conclusion) + (sc===null||sc===undefined ? '' : `（综合评分 ${{sc}}）`);
   const bannerColor = d.sug_color || e.concl_color;
   const trendTxt2 = e.trend && e.trend.label ? e.trend.label : '--';
@@ -1378,7 +1408,7 @@ DATA.etfs.forEach(e => {{
       <h3>${{e.name}} <span class="code">${{e.code}}</span></h3>
       <div class="num-row"><span class="big">${{fmtNum(e.close,3)}}</span>
         <span class="${{up?'up':'down'}}">${{e.pct_chg>=0?'+':''}}${{e.pct_chg.toFixed(2)}}%</span>
-        <span style="font-size:12px;color:var(--sub)">${{e.latest_date}}</span></div>
+        <span style="font-size:12px;color:var(--sub)">${{e.latest_date}} ${{freshTag}}</span></div>
       <div class="kv">
         <span class="k">PE / 分位</span><span class="v">${{peInfo}}</span>
         <span class="k">分位样本</span><span class="v">${{peSamples}}</span>
@@ -1630,7 +1660,15 @@ def main():
             except Exception as e:
                 log(f"{name}: 指数历史写盘失败 {e}")
 
-    meta["data_date"] = "/".join(sorted(data_dates)) if data_dates else "--"
+    # 数据日期：取最新交易日为主日期；若各标的最新行情日不一致，显式标注滞后只数（DeepSeek评审P0：数据新鲜度强制对账）
+    main_date = max(data_dates) if data_dates else "--"
+    if data_dates and len(data_dates) > 1:
+        lag_n = sum(1 for d in data_dates if d != main_date)
+        meta["data_date"] = f"{main_date}（{lag_n} 只行情滞后）"
+    else:
+        meta["data_date"] = main_date if data_dates else "--"
+    for s in etfs:
+        s["fresh"] = "ok" if s["latest_date"] == main_date else "lag"
     meta["badges"] = badges
 
     # ---- 组合相关性（近250交易日日收益两两相关系数）----

@@ -232,10 +232,21 @@ def data_quality(trend: dict, val: dict, risk: dict, official_count: int) -> int
     return int(round(sum(q) / len(q)))
 
 
+def _score100(x: float | None):
+    """-1..1 三维得分 → 0-100 展示分；None 保持 None（维度未参与）。"""
+    if x is None:
+        return None
+    return int(round((float(x) + 1) / 2 * 100))
+
+
 def decide(trend: dict, val: dict, risk: dict, official_count: int) -> dict:
     """
-    综合决策：输出 综合评分(0-100)、数据完整度、建议档位、主要依据。
+    综合决策：输出 综合评分(0-100)、三维子分数、权重、权重敏感性、
+    数据完整度、建议档位、主要依据。
     估值缺失时权重在趋势/风险间重分配；趋势下降或风险过高优先压制买入档位。
+    sub: 三维子分数（趋势/估值/风险 各 0-100，未参与维度为 None），用于评分归因透明化。
+    w:   实际生效权重 {trend, val, risk}。
+    score_alt: 估值权重 40%→30%（趋势/风险各 35%）时的敏感性评分，估值缺失时等于 score。
     """
     t = trend.get("score")
     v = val.get("score")
@@ -246,15 +257,21 @@ def decide(trend: dict, val: dict, risk: dict, official_count: int) -> dict:
         return {"score": None, "quality": data_quality(trend, val, risk, official_count),
                 "suggestion": "暂不判断（数据不足）", "sug_color": "#94a3b8",
                 "reasons": ["趋势/风险数据均不足，暂不生成交易建议"],
-                "trend": t_label, "risk": r_label, "val": val.get("label")}
+                "trend": t_label, "risk": r_label, "val": val.get("label"),
+                "sub": {"trend": None, "val": _score100(v), "risk": None},
+                "w": {"trend": 0.0, "val": 0.0, "risk": 0.0}, "score_alt": None}
     # 权重：估值可用时 0.3/0.4/0.3；缺失时趋势/风险对半
     if v is not None:
         w_t, w_v, w_r = 0.30, 0.40, 0.30
         base = 100 * (w_t * (t if t is not None else 0.5) + w_v * v + w_r * (r if r is not None else 0.5))
+        # 敏感性：估值权重降至 30%，趋势/风险各 35%
+        base_alt = 100 * (0.35 * (t if t is not None else 0.5) + 0.30 * v + 0.35 * (r if r is not None else 0.5))
     else:
         w_t, w_v, w_r = 0.5, 0.0, 0.5
         base = 100 * (w_t * (t if t is not None else 0.5) + w_r * (r if r is not None else 0.5))
+        base_alt = base   # 估值未参与时权重已对半，无敏感性
     score = max(0, min(100, int(round(base))))   # 钳制到 0-100（看板口径）
+    score_alt = max(0, min(100, int(round(base_alt))))
     reasons = []
     reasons.append(trend.get("desc") or f"趋势{t_label}")
     if v is not None:
@@ -282,7 +299,10 @@ def decide(trend: dict, val: dict, risk: dict, official_count: int) -> dict:
             suggestion, sug_color = "暂停新增仓位，优先控制风险", "#3b82f6"
     return {"score": score, "quality": data_quality(trend, val, risk, official_count),
             "suggestion": suggestion, "sug_color": sug_color,
-            "reasons": reasons, "trend": t_label, "risk": r_label, "val": val.get("label")}
+            "reasons": reasons, "trend": t_label, "risk": r_label, "val": val.get("label"),
+            "sub": {"trend": _score100(t), "val": _score100(v), "risk": _score100(r)},
+            "w": {"trend": w_t, "val": w_v, "risk": w_r},
+            "score_alt": score_alt}
 
 
 def batch_plan(trend: dict, risk: dict, val: dict) -> dict:
