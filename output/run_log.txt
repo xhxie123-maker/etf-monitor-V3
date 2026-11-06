@@ -586,3 +586,46 @@
 [2026-11-05 16:38:25] 红利低波ETF: 指数历史已积累 5062 条 -> index_history_H30269.csv
 [2026-11-05 16:38:25] 组合相关性(近249个交易日日收益): {'红利ETF×银行ETF': 0.511, '红利ETF×煤炭ETF': 0.729, '红利ETF×自由现金流ETF': 0.749, '红利ETF×红利低波ETF': 0.75, '银行ETF×煤炭ETF': 0.2, '银行ETF×自由现金流ETF': 0.235, '银行ETF×红利低波ETF': 0.842, '煤炭ETF×自由现金流ETF': 0.533, '煤炭ETF×红利低波ETF': 0.427, '自由现金流ETF×红利低波ETF': 0.543, '_n': 249}
 [2026-11-05 16:38:25] 看板已生成: /home/runner/work/etf-monitor-V3/etf-monitor-V3/output/etf_dashboard.html
+[2026-11-06 16:32:31] [数据源] 东财指数行情 2次尝试均失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-06 16:32:31] 东财指数行情不可用，尝试新浪源
+[2026-11-06 16:34:13] [数据源] 东财ETF行情 2次尝试均失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-06 16:34:13] 东财ETF行情不可用，尝试腾讯源
+[2026-11-06 16:34:26] 官方股息率 XLS 000922 20 期（截至 2026-11-05，不写积累库PE）
+[2026-11-06 16:34:40] 红利ETF: 收盘 1.369 | PE 8.85 分位 1Y 85.5% / 3Y 95.2% / 5Y 97.1% (n=250/750/1250) | 官方PE 3812条 | 决策 0分[100%] 暂停新增仓位，优先控制风险
+[2026-11-06 16:34:40] 红利ETF: 价格历史已积累 1666 条 -> price_history_515180.csv
+[2026-11-06 16:34:40] 红利ETF: 指数历史已积累 5305 条 -> index_history_000922.csv
+[2026-11-06 16:34:45] [数据源] 东财ETF行情 2次尝试均失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-06 16:34:45] 东财ETF行情不可用，尝试腾讯源
+[2026-11-06 16:34:57] 官方股息率 XLS 399986 20 期（截至 2026-11-05，不写积累库PE）
+[2026-11-06 16:35:09] 银行ETF: 收盘 1.457 | PE 7.25 分位 1Y 78.3% / 3Y 91.5% / 5Y 94.9% (n=250/750/1250) | 官方PE 2930条 | 决策 20分[100%] 高估但趋势尚在：持有观察，反弹分批止盈
+[2026-11-06 16:35:09] 银行ETF: 价格历史已积累 1320 条 -> price_history_516310.csv
+[2026-11-06 16:35:09] 银行ETF: 指数历史已积累 5305 条 -> index_history_399986.csv
+[2026-11-06 16:35:17] [数据源] 东财ETF行情 2次尝试均失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-06 16:35:17] 东财ETF行情不可用，尝试腾讯源
+[2026-11-06 16:35:28] 官方股息率 XLS 000820 20 期（截至 2026-11-05，不写积累库PE）
+[2026-11-06 16:35:34] 煤炭ETF: 收盘 1.169 | PE 15.82 分位 1Y 36.5% / 3Y 78.9% / 5Y 87.3% (n=250/750/1250) | 官方PE 3812条 | 决策 0分[100%] 暂停新增仓位，优先控制风险
+[2026-11-06 16:35:34] 煤炭ETF: 价格历史已积累 1622 条 -> price_history_515220.csv
+[2026-11-06 16:35:34] 煤炭ETF: 指数历史已积累 5305 条 -> index_history_000820.csv
+[2026-11-06 16:35:38] [数据源] 东财ETF行情 2次尝试均失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-06 16:35:38] 东财ETF行情不可用，尝试腾讯源
+[2026-11-06 16:35:47] [数据源] 东财指数行情 2次尝试均失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-06 16:35:47] 东财指数行情不可用，尝试新浪源
+[2026-11-06 16:35:55] 自由现金流ETF: 收盘 1.157 | PE 12.97 分位 1Y 9.2% / 3Y 36.6% / 5Y 21.9% (n=250/750/1250) | 官方PE 2829条 | 决策 31分[100%] 暂停新增仓位，优先控制风险
+[2026-11-06 16:35:55] 自由现金流ETF: 价格历史已积累 412 条 -> price_history_159201.csv
+[2026-11-06 16:35:55] 自由现金流ETF: 指数历史已积累 536 条 -> index_history_980092.csv
+[2026-11-06 16:36:00] [数据源] 东财ETF行情 2次尝试均失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-06 16:36:00] 东财ETF行情不可用，尝试腾讯源
+[2026-11-06 16:36:08] 官方股息率 XLS H30269 20 期（截至 2026-11-05，不写积累库PE）
+[2026-11-06 16:36:28] 中证官网指数行情获取失败: HTTPSConnectionPool(host='www.csindex.com.cn', port=443): Read timed out. (read timeout=20)
+[2026-11-06 16:36:28] 中证官网指数行情不可用，回退常规通道
+[2026-11-06 16:36:32] [数据源] 东财指数行情 2次尝试均失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-06 16:36:32] 东财指数行情不可用，尝试新浪源
+[2026-11-06 16:36:33] [数据源] 新浪指数行情 1次尝试均失败: KeyError: 'date'
+[2026-11-06 16:36:33] 新浪指数行情不可用，尝试腾讯源
+[2026-11-06 16:36:33] [数据源] 腾讯指数行情 1次尝试均失败: ValueError: time data 'i' does not match format '%Y-%m-%d'
+[2026-11-06 16:36:33] 红利低波ETF 指数日线缺失，停止生成日频PE估算，避免复权ETF价格冒充指数点位
+[2026-11-06 16:36:33] 红利低波ETF 日频PE序列不足(样本0)，分位不可用
+[2026-11-06 16:36:33] 红利低波ETF: 收盘 1.200 | PE 8.37 分位 1Y None% / 3Y None% / 5Y None% (n=None/None/None) | 官方PE 3282条 | 决策 20分[100%] 高估但趋势尚在：持有观察，反弹分批止盈
+[2026-11-06 16:36:33] 红利低波ETF: 价格历史已积累 699 条 -> price_history_563020.csv
+[2026-11-06 16:36:33] 组合相关性(近249个交易日日收益): {'红利ETF×银行ETF': 0.512, '红利ETF×煤炭ETF': 0.731, '红利ETF×自由现金流ETF': 0.75, '红利ETF×红利低波ETF': 0.752, '银行ETF×煤炭ETF': 0.203, '银行ETF×自由现金流ETF': 0.237, '银行ETF×红利低波ETF': 0.842, '煤炭ETF×自由现金流ETF': 0.535, '煤炭ETF×红利低波ETF': 0.43, '自由现金流ETF×红利低波ETF': 0.546, '_n': 249}
+[2026-11-06 16:36:34] 看板已生成: /home/runner/work/etf-monitor-V3/etf-monitor-V3/output/etf_dashboard.html
