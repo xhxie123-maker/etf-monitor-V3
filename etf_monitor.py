@@ -1,19 +1,25 @@
 # -*- coding: utf-8 -*-
 """
-ETF 智能监测工具（V3）
-=====================
+ETF 智能监测与辅助决策看板（V4）
+================================
 监测标的：515180 红利ETF / 516310 银行ETF / 515220 煤炭ETF / 159201 自由现金流ETF / 563020 红利低波ETF
 核心指标：价格趋势(MA20/MA60/MA120/BOLL/RSI)、指数估值分位、创业板红利比、
          风险指标(ATR/ADX/波动率/回撤)、交易决策简报(趋势×估值×风险三维)
 输出     ：单窗口可视化看板 output/etf_dashboard.html（浏览器打开即看全部）
 用法     ：python etf_monitor.py [--open]
-          --open 生成后自动打开浏览器看板
 数据源   ：东方财富/腾讯/新浪(行情回退链)、中证指数官网(官方估值+中证系指数官方日线)、日频PE序列(官方最新PE×价格比估算)
 分位口径 ：近1年/近3年/近5年三窗口滚动分位，主信号取近3年；分位旁标注样本数(交易日)与时间跨度
-V3 决策  ：估值维度仅使用积累库官方PE(≥200条)参与决策，样本不足标注"数据不足"不硬算；
-          长期趋势向下或风险过高时不因RSI超卖/PE低估给强烈买入；
-          看板含综合评分(0-100)、数据完整度、分批建仓纪律、ATR参考价位。
-专属指标 ：每只标的按角色构建针对性监测维度（股息率-10Y利差/焦煤期货/价格结构/低波超额等）。
+
+V4 升级（依据 GPT 代码评审 P0，第一阶段四项）：
+  1) 数据质量闸门（decision_engine.data_gate）：行情滞后/样本不足/趋势缺失/风险缺失/
+     估值不足/来源降级/PE口径陈旧逐项校验，前序闸门对最终建议有否决权；
+  2) 风险引擎修复：风险指标全缺失时明确判"数据不足"，不再误判"低风险"；缺失维度
+     不再用 0.5 中性值填充，只在可用维度上归一化权重；
+  3) 决策输出统一为六种操作状态（允许分批加仓/正常定投/持有观察/暂停新增/再平衡评估/暂不判断），
+     每条附理由、数据日期、仓位上限与"下一步条件"，综合评分仅作辅助排序；
+  4) 中央配置 portfolio_config.json：ETF池/基准权重/仓位上下限/资产类别/集中度/调仓阈值/
+     引擎阈值/回测成本/数据质量阈值唯一来源（页面、文档、回测同一口径）。
+
 说明     ：本工具仅为数据监测与量化参考，不构成投资建议。
 """
 import os
@@ -47,23 +53,71 @@ LOG_PATH = OUT_DIR / "run_log.txt"
 # 行情数据源生效统计（千问评审二轮D-11：看板展示实际生效源，避免“标识ok但实际频繁降级”）
 SRC_STATS = {"ok_em": 0, "ok_tx": 0, "ok_sina": 0, "ok_cs": 0, "fail_em": 0}
 
-# 监测标的：名称 -> 代码（ETF）
-ETF_POOL = {
-    "红利ETF": {"code": "515180", "index_code": "000922", "index_name": "中证红利",
-               "color": "#e6b31e", "role": "高股息压舱石", "base_w": 25, "max_w": 40, "min_w": 12},
-    "银行ETF": {"code": "516310", "index_code": "399986", "index_name": "中证银行",
-               "color": "#3b82f6", "role": "低估值稳息品种", "base_w": 20, "max_w": 30, "min_w": 8},
-    "煤炭ETF": {"code": "515220", "index_code": "000820", "index_name": "中证煤炭",
-               "color": "#f97316", "role": "强周期高波动品种", "base_w": 20, "max_w": 30, "min_w": 8,
-               "cyclic": True,
-               "note": "强周期行业：盈利下行期 PE 被动抬升，高分位≠高估，需结合煤价位置/盈利与股息率判断；参考做T与仓位纪律而非单纯PE分位"},
-    "自由现金流ETF": {"code": "159201", "index_code": "980092", "index_name": "国证自由现金流",
-               "color": "#14b8a6", "role": "现金流质量成长品种", "base_w": 15, "max_w": 25, "min_w": 8,
-               "note": "2025-02上市、历史<3年：官方PE已接入（iFinD全历史播种2016-01起+腾讯日频增量，国证980092指数口径，PE-TTM），估值参与决策评分；另保留十大权重加权参考估值(腾讯)与IOPV溢价率作观测（非官方指数估值、仅参考）；以价格/趋势/技术面与组合相关性为主要追踪维度"},
-    "红利低波ETF": {"code": "563020", "index_code": "H30269", "index_name": "中证红利低波动",
-               "color": "#a78bfa", "role": "低波红利压舱石", "base_w": 20, "max_w": 30, "min_w": 10,
-               "note": "2023-12上市（约3年）；指数基日2005-12-30、官方PE全历史可用（中证官网indexCsiDsPe，2013-12起），估值分位完整；以低波动+高股息为特征，年化波动率与相对红利超额（vs红利ETF 515180）为专属观察维度"},
-}
+# ------------------------------------------------------------
+# V4 中央配置：portfolio_config.json 为唯一来源
+# （ETF池/基准权重/仓位上下限/资产类别/集中度/调仓阈值/引擎阈值/回测成本/数据质量阈值）
+# 配置文件缺失或损坏时回退内置默认，保证云端仍可运行（日志与页面会标注回退状态）。
+# ------------------------------------------------------------
+CONFIG_PATH = BASE_DIR / "portfolio_config.json"
+
+_BUILTIN_ETFS = [
+    {"code": "515180", "name": "红利ETF", "index_code": "000922", "index_name": "中证红利",
+     "asset_class": "style_satellite", "role": "高股息压舱石", "color": "#e6b31e",
+     "base_w": 25, "max_w": 40, "min_w": 12, "cyclic": False},
+    {"code": "516310", "name": "银行ETF", "index_code": "399986", "index_name": "中证银行",
+     "asset_class": "style_satellite", "role": "低估值稳息品种", "color": "#3b82f6",
+     "base_w": 20, "max_w": 30, "min_w": 8, "cyclic": False},
+    {"code": "515220", "name": "煤炭ETF", "index_code": "000820", "index_name": "中证煤炭",
+     "asset_class": "style_satellite", "role": "强周期高波动品种", "color": "#f97316",
+     "base_w": 20, "max_w": 30, "min_w": 8, "cyclic": True, "research_cap_w": 10,
+     "note": "强周期行业：盈利下行期 PE 被动抬升，高分位≠高估，需结合煤价位置/盈利与股息率判断；参考做T与仓位纪律而非单纯PE分位"},
+    {"code": "159201", "name": "自由现金流ETF", "index_code": "980092", "index_name": "国证自由现金流",
+     "asset_class": "style_satellite", "role": "现金流质量成长品种", "color": "#14b8a6",
+     "base_w": 15, "max_w": 25, "min_w": 8, "cyclic": False,
+     "note": "2025-02上市、历史<3年：官方PE已接入（iFinD全历史播种2016-01起+腾讯日频增量，国证980092指数口径，PE-TTM），估值参与决策评分；另保留十大权重加权参考估值(腾讯)与IOPV溢价率作观测（非官方指数估值、仅参考）；以价格/趋势/技术面与组合相关性为主要追踪维度"},
+    {"code": "563020", "name": "红利低波ETF", "index_code": "H30269", "index_name": "中证红利低波动",
+     "asset_class": "style_satellite", "role": "低波红利压舱石", "color": "#a78bfa",
+     "base_w": 20, "max_w": 30, "min_w": 10, "cyclic": False,
+     "note": "2023-12上市（约3年）；指数基日2005-12-30、官方PE全历史可用（中证官网indexCsiDsPe，2013-12起），估值分位完整；以低波动+高股息为特征，年化波动率与相对红利超额（vs红利ETF 515180）为专属观察维度"},
+]
+
+
+def _load_portfolio_config():
+    """读取中央配置；失败返回 None（由调用链回退内置默认）。"""
+    try:
+        with open(CONFIG_PATH, encoding="utf-8") as f:
+            return json.load(f)
+    except Exception as e:
+        print(f"[配置] portfolio_config.json 读取失败，使用内置默认: {e}")
+        return None
+
+
+_CFG = _load_portfolio_config()
+V4_VERSION = (_CFG or {}).get("version", "V4.0")
+STRATEGY_VERSION = (_CFG or {}).get("strategy_version", "v4-p0-builtin")
+CONFIG_SOURCE = "portfolio_config.json" if _CFG else "内置默认（配置文件缺失）"
+
+ETF_POOL = {}
+for _e in ((_CFG or {}).get("etfs") or _BUILTIN_ETFS):
+    ETF_POOL[_e["name"]] = {
+        "code": _e["code"], "index_code": _e["index_code"], "index_name": _e["index_name"],
+        "color": _e.get("color", "#94a3b8"), "role": _e.get("role", ""),
+        "base_w": _e.get("base_w", 0), "max_w": _e.get("max_w", 0), "min_w": _e.get("min_w", 0),
+        "cyclic": bool(_e.get("cyclic", False)),
+        "asset_class": _e.get("asset_class", "style_satellite"),
+        "research_cap_w": _e.get("research_cap_w"),
+        "note": _e.get("note"),
+    }
+
+# 组合/引擎/回测/数据质量参数（配置缺失时用内置默认）
+PORTFOLIO_CFG = (_CFG or {}).get("portfolio", {}) or {}
+ENGINE_CFG = (_CFG or {}).get("engine", {}) or {}
+BT_CFG = (_CFG or {}).get("backtest", {}) or {}
+DQ_CFG = (_CFG or {}).get("data_quality", {}) or {}
+GATE_PRICE_STALE = int(DQ_CFG.get("price_stale_days", 3))
+GATE_PRICE_HARD = 7          # 超过 7 天视为行情断更（3~7 天可能为休市，仅告警不加仓）
+GATE_MIN_ROWS = int(DQ_CFG.get("min_price_rows", 130))
+GATE_PE_STALE = int(DQ_CFG.get("pe_stale_days", 10))
 
 # 创业板红利比 = 创业板指(399006) / 中证红利(000922)
 GEM_INDEX = "399006"
@@ -723,11 +777,13 @@ def get_valuation(code: str, name: str, hist: pd.DataFrame):
 # 5. 信号引擎
 # ============================================================
 def build_signal(name: str, cfg: dict, price: pd.DataFrame, val_latest: dict,
-                 pe_series: "pd.Series | None", pe_hist_official: "pd.DataFrame | None" = None):
+                 pe_series: "pd.Series | None", pe_hist_official: "pd.DataFrame | None" = None,
+                 run_date=None, src_flags: dict | None = None):
     """
     返回该 ETF 的全部指标、信号、建议。
     pe_series: 日频 PE 序列（估算口径，仅展示）
     pe_hist_official: 该指数积累库官方 PE 历史（决策引擎估值维度使用，≥200 条才参与）
+    run_date/src_flags: V4 数据质量闸门所需的运行日与本轮数据源状态
     """
     last = price.iloc[-1]
     pe = val_latest.get("pe") if val_latest else np.nan
@@ -747,7 +803,7 @@ def build_signal(name: str, cfg: dict, price: pd.DataFrame, val_latest: dict,
                 pe_pcts.append(round(percentile_of(w, float(v.iloc[i])), 1))
                 pe_dates.append(str(idx[i].date()))
 
-    # ---- V3 决策引擎：趋势 × 估值 × 风险 ----
+    # ---- V4 决策引擎：数据质量闸门 → 趋势 × 估值 × 风险 → 六种操作状态 ----
     close = float(last["close"])
     slope_ma20 = None
     if not np.isnan(last.get("ma20")) and len(price) >= 6 and not np.isnan(price["ma20"].iloc[-6]):
@@ -766,8 +822,28 @@ def build_signal(name: str, cfg: dict, price: pd.DataFrame, val_latest: dict,
     val = decision_engine.valuation_state(ow_main["pct"] if ow_main else None, official_count)
     risk_raw = decision_engine.risk_metrics(price["close"], price["high"], price["low"])
     risk = decision_engine.risk_state(risk_raw, trend)
-    decision = decision_engine.decide(trend, val, risk, official_count)
-    batch = decision_engine.batch_plan(trend, risk, val)
+    # V4 数据质量闸门（评分之前，前序闸门对最终建议有否决权）
+    price_last_date = str(pd.to_datetime(price["date"].iloc[-1]).date())
+    pe_last_date = None
+    if pe_hist_official is not None and not pe_hist_official.empty:
+        try:
+            pe_last_date = str(pd.to_datetime(pe_hist_official["date"]).max().date())
+        except Exception:
+            pe_last_date = None
+    gate = decision_engine.data_gate(
+        price_last_date=price_last_date,
+        run_date=(run_date or dt.date.today()),
+        price_rows=len(price),
+        pe_last_date=pe_last_date,
+        official_count=official_count,
+        src_flags=src_flags or {},
+        trend=trend, risk=risk, val=val,
+        price_stale_days=GATE_PRICE_STALE,
+        price_stale_hard_days=GATE_PRICE_HARD,
+        pe_stale_days=GATE_PE_STALE,
+        min_price_rows=GATE_MIN_ROWS)
+    decision = decision_engine.decide(trend, val, risk, official_count, gate=gate)
+    batch = decision_engine.batch_plan(trend, risk, val, gate=gate)
     atr = decision_engine.atr_ref(close, risk_raw.get("atr"))
 
     score = 0.0
@@ -912,10 +988,18 @@ def build_signal(name: str, cfg: dict, price: pd.DataFrame, val_latest: dict,
         "support": support, "pressure": pressure, "t_text": t_text,
         "long_txt": long_txt,
         "latest_date": str(price["date"].iloc[-1].date()),
-        # ---- V3 决策简报 ----
+        "price_rows": int(len(price)),
+        "price_start": str(price["date"].iloc[0].date()),
+        # ---- V4 决策简报：三维评分 + 数据质量闸门 + 六状态 ----
         "official_pe_count": official_count,
         "official_pe_windows": official_windows,   # 官方积累 PE 分位（决策用）
-        "decision": decision,   # {score(0-100), quality, suggestion, sug_color, reasons, trend, risk, val}
+        "decision": decision,   # {score(0-100), state(六状态), quality, reasons, next_conditions, gate...}
+        "gate": gate,           # {passed, block_add, fatal, level, flags, summary}
+        "pos": {"base_w": cfg.get("base_w"), "max_w": cfg.get("max_w"), "min_w": cfg.get("min_w")},
+        "asset_class": cfg.get("asset_class"),
+        "research_cap_w": cfg.get("research_cap_w"),
+        "pe_last_date": pe_last_date,
+        "strategy_version": STRATEGY_VERSION,
         "trend": trend,         # {label, score, desc}
         "risk": risk,           # {label, score, desc, available}
         "risk_raw": {"atr": risk_raw.get("atr"), "atr_pct": risk_raw.get("atr_pct"),
@@ -1085,18 +1169,40 @@ def get_mkt_amount():
         return None
 
 
+def _macro_status(last_date, run_date, hard_days):
+    """宏观口径新鲜度：返回 (status, days)。status ∈ ok / stale / fail。"""
+    if not last_date:
+        return "fail", None
+    try:
+        days = (pd.to_datetime(run_date).date() - pd.to_datetime(last_date).date()).days
+    except Exception:
+        return "fail", None
+    if days > hard_days:
+        return "stale", days
+    return "ok", days
+
+
 def get_macro() -> dict:
     """宏观环境采集：
     利率 = 中国10Y国债收益率（英为财情）+ 较约20日前变化(bp)
     政策 = LPR(1Y/5Y，央行) + 手动维护条目 MACRO_POLICY
     情绪 = 两市成交额（上证+深证，腾讯）及其较20日均量比
-    任一失败仅置 None，看板显示 '--'，不影响 ETF 主流程。"""
-    m = {"y10": None, "y10_chg": None, "y10_label": None, "y10_date": None,
-         "lpr1": None, "lpr5": None,
-         "mkt": None, "mkt_ratio": None, "mkt_date": None,
-         "policy_date": MACRO_POLICY.get("date"), "ok": True}
 
-    # ---- 利率环境：10Y 国债收益率 ----
+    V4 P0-5：每项都带「发布日期 + 更新状态」（ok / stale / fail）。
+    采集失败标 fail（页面显示「获取失败」而非裸 '--'）；超过新鲜度阈值标 stale，
+    并明确「过期数据不参与判断」，不再把它当作可用环境信号。
+    """
+    run_date = dt.date.today()
+    m = {"y10": None, "y10_chg": None, "y10_label": None, "y10_date": None,
+         "lpr1": None, "lpr5": None, "lpr_date": None,
+         "mkt": None, "mkt_ratio": None, "mkt_date": None,
+         "policy_date": MACRO_POLICY.get("date"),
+         "status": {"y10": "fail", "lpr": "fail", "mkt": "fail"},
+         "stale_days": {"y10": None, "lpr": None, "mkt": None},
+         "thresholds": {"y10": 10, "lpr": 45, "mkt": 5},
+         "ok": False}
+
+    # ---- 利率环境：10Y 国债收益率（阈值 10 个自然日）----
     try:
         d = ak.bond_zh_us_rate(start_date=(dt.date.today() - dt.timedelta(days=120)).strftime("%Y%m%d"))
         d = d.dropna(subset=["中国国债收益率10年"]).sort_values("日期").reset_index(drop=True)
@@ -1104,26 +1210,35 @@ def get_macro() -> dict:
             y = float(d["中国国债收益率10年"].iloc[-1])
             base = float(d["中国国债收益率10年"].iloc[-21]) if len(d) > 21 else float(d["中国国债收益率10年"].iloc[0])
             m["y10"], m["y10_chg"] = y, (y - base) * 100  # bp
-            m["y10_date"] = str(d["日期"].iloc[-1])
+            m["y10_date"] = str(d["日期"].iloc[-1])[:10]
             if y < MACRO_TH["y10_low"]:
                 m["y10_label"] = "低利率·宽松（利好红利/高股息）"
             elif y > MACRO_TH["y10_high"]:
                 m["y10_label"] = "高利率·偏紧（压制估值）"
             else:
                 m["y10_label"] = "利率中性"
+            m["status"]["y10"], m["stale_days"]["y10"] = _macro_status(
+                m["y10_date"], run_date, m["thresholds"]["y10"])
+        else:
+            m["status"]["y10"] = "fail"
     except Exception as e:
+        m["status"]["y10"] = "fail"
         log(f"[数据源] 10Y国债收益率获取失败: {type(e).__name__}: {str(e)[:120]}")
 
-    # ---- 政策风向：LPR（自动硬指标）+ 手动条目 ----
+    # ---- 政策风向：LPR（自动硬指标，月度发布，阈值 45 天）+ 手动条目 ----
     try:
         d = ak.macro_china_lpr()
         d = d.sort_values("TRADE_DATE")
         m["lpr1"] = float(d["LPR1Y"].iloc[-1])
         m["lpr5"] = float(d["LPR5Y"].iloc[-1])
+        m["lpr_date"] = str(d["TRADE_DATE"].iloc[-1])[:10]
+        m["status"]["lpr"], m["stale_days"]["lpr"] = _macro_status(
+            m["lpr_date"], run_date, m["thresholds"]["lpr"])
     except Exception as e:
+        m["status"]["lpr"] = "fail"
         log(f"[数据源] LPR获取失败: {type(e).__name__}: {str(e)[:120]}")
 
-    # ---- 市场情绪：两市成交额 ----
+    # ---- 市场情绪：两市成交额（阈值 5 个自然日）----
     try:
         mm = get_mkt_amount()
         if mm is not None and len(mm) >= 21:
@@ -1131,11 +1246,18 @@ def get_macro() -> dict:
             avg20 = float(mm["total"].iloc[-21:-1].mean())
             m["mkt"] = last
             m["mkt_ratio"] = last / avg20 if avg20 > 0 else None
-            m["mkt_date"] = str(mm["date"].iloc[-1])
+            m["mkt_date"] = str(mm["date"].iloc[-1])[:10]
+            m["status"]["mkt"], m["stale_days"]["mkt"] = _macro_status(
+                m["mkt_date"], run_date, m["thresholds"]["mkt"])
+        else:
+            m["status"]["mkt"] = "fail"
     except Exception as e:
+        m["status"]["mkt"] = "fail"
         log(f"[数据源] 市场情绪采集失败: {type(e).__name__}: {str(e)[:120]}")
 
+    m["ok"] = all(v == "ok" for v in m["status"].values())
     return m
+
 
 
 def build_ratio():
@@ -1296,6 +1418,16 @@ def render_dashboard(meta: dict, ratio: dict, etfs: list, macro: dict = None, co
   .price-charts {{ display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:14px; }}
   .tall {{ height:300px; }}
   .pe-charts {{ display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:14px; }}
+  .v4tag {{ display:inline-block; font-size:11px; font-weight:700; color:#fff; background:#0f766e;
+           border-radius:5px; padding:2px 7px; margin-left:8px; vertical-align:middle; letter-spacing:.5px; }}
+  .st-badge {{ display:inline-block; font-size:12px; font-weight:700; padding:2px 9px; border-radius:6px;
+              border:1px solid transparent; white-space:nowrap; }}
+  .gate-row {{ display:flex; flex-wrap:wrap; gap:6px; margin:6px 0 0; }}
+  .gate-chip {{ font-size:11px; padding:2px 7px; border-radius:5px; border:1px solid rgba(148,163,184,.35); color:var(--sub); }}
+  .gate-chip.gate-warn {{ color:#eab308; border-color:rgba(234,179,8,.45); background:rgba(234,179,8,.10); }}
+  .gate-chip.gate-block {{ color:#ef4444; border-color:rgba(239,68,68,.45); background:rgba(239,68,68,.10); }}
+  .gate-chip.gate-ok {{ color:#22c55e; border-color:rgba(34,197,94,.4); background:rgba(34,197,94,.08); }}
+  .next-cond {{ font-size:11.5px; color:var(--sub); margin-top:4px; line-height:1.6; }}
   .foot {{ margin-top:16px; color:var(--sub); font-size:12px; text-align:center; line-height:1.8; }}
   .rules {{ display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:14px; }}
   .rules li {{ margin-left:16px; }}
@@ -1307,8 +1439,8 @@ def render_dashboard(meta: dict, ratio: dict, etfs: list, macro: dict = None, co
 <div class="wrap">
   <div class="header">
     <div>
-      <h1>ETF 智能监测看板</h1>
-      <div class="sub">{(' · '.join(f'{n} {c["code"]}' for n, c in ETF_POOL.items()))} ｜ 数据日期 {meta['data_date']} ｜ 生成 {meta['gen_time']}</div>
+      <h1>ETF 辅助决策看板<span class="v4tag">V4</span></h1>
+      <div class="sub">{(' · '.join(f'{n} {c["code"]}' for n, c in ETF_POOL.items()))} ｜ 数据日期 {meta['data_date']} ｜ 生成 {meta['gen_time']} ｜ 策略版本 {meta.get('strategy_version', '')} ｜ 配置 {meta.get('config_source', '')}</div>
       {src_line}
     </div>
     <div class="badges" id="badges"></div>
@@ -1345,12 +1477,29 @@ def render_dashboard(meta: dict, ratio: dict, etfs: list, macro: dict = None, co
   </div>
   </div>
 
-  <!-- V3 交易决策简报：综合评分 / 数据完整度 / 趋势 / 风险 / 建议 / 分批纪律 / ATR参考 -->
+  <!-- V4 辅助决策简报：数据质量闸门 → 三维评分 → 六种操作状态 -->
   <div class="grid">
   <div class="card decision-card">
-    <h3>交易决策简报 <span class="code">综合评分0-100 · 趋势×估值×风险三维 · 每日自动更新</span></h3>
+    <h3>辅助决策简报 <span class="code">数据质量闸门 · 趋势×估值×风险 · 六种操作状态 ｜ 综合评分仅作辅助排序</span></h3>
     <div id="combo-banner"></div>
     <div id="decision-brief"></div>
+    <div class="next-cond">六状态＝允许分批加仓 / 正常定投 / 持有观察 / 暂停新增 / 再平衡评估 / 暂不判断。前序数据质量闸门与风险警告具有否决权：数据缺失或风险未知时，再高的综合评分也不会升级为主动加仓。</div>
+  </div>
+  </div>
+
+  <!-- V4 组合配置体检（基准权重合计 / 单品种上限 / 同类分组集中度） -->
+  <div class="grid">
+  <div class="card">
+    <h3>组合配置体检 <span class="code">基准权重合计 · 单品种上限 · 同类分组集中度 ｜ 来源 portfolio_config.json</span></h3>
+    <div id="portfolio-check"></div>
+  </div>
+  </div>
+
+  <!-- V4 数据口径说明（P0-3：来源 / 字段类型 / 计算口径 / 统计期间 / 最新日期） -->
+  <div class="grid">
+  <div class="card">
+    <h3>数据口径说明 <span class="code">来源 · 字段类型 · 计算口径 · 统计期间 · 最新日期 ｜ 每项数据可追溯</span></h3>
+    <div id="provenance"></div>
   </div>
   </div>
 
@@ -1383,15 +1532,18 @@ def render_dashboard(meta: dict, ratio: dict, etfs: list, macro: dict = None, co
     </ul></div>
     <div class="card"><h3>再平衡</h3><ul class="mini" style="list-style:none">
       <li>· 每半年（6月/12月）强制再平衡一次</li>
-      <li>· 单只仓位偏离基准 ±10% 触发调整</li>
+      <li>· 单只仓位偏离基准 <b>±10 绝对百分点（±10pp）</b> 触发调整（非相对偏离）</li>
+      <li>· 单品种上限 40%、红利家族（红利ETF+红利低波ETF）合计上限 45%</li>
       <li>· 创业板/红利相对强弱分位&lt;30%或&gt;70%时关注风格切换，不据此单独交易</li>
+      <li>· 实际仓位偏离需录入持仓数据后判定（P1）；当前为基准权重静态校验</li>
     </ul></div>
     <div class="card"><h3>长期纪律</h3><ul class="mini" style="list-style:none">
-      <li>· 煤炭为强周期品种，仓位上限 40%，切忌单吊</li>
+      <li>· 煤炭为强周期品种，硬上限 {ETF_POOL.get('煤炭ETF', {}).get('max_w', 30)}%；稳健配置研究建议上限 5%~10%（配置 research_cap_w），超配需自担波动</li>
       <li>· 银行低估值弹性小，作为组合压舱石</li>
       <li>· 红利在成长牛市中会跑输大盘，保持组合思维</li>
       <li>· 红利低波ETF（563020）与红利ETF同属红利家族，两者合计基准仓位上限 45%，避免同类过度集中</li>
-      <li>· 自由现金流ETF（159201）为现金流质量成长品种，上市历史短但官方PE已接入（国证980092指数口径），按 15% 基准仓位执行</li>
+      <li>· 自由现金流ETF（159201）为现金流质量成长品种，上市历史短但官方PE已接入（国证980092指数口径），按 {ETF_POOL.get('自由现金流ETF', {}).get('base_w', 15)}% 基准仓位执行</li>
+      <li>· 「银行≠债券、红利≠固收、煤炭≠稳健底仓」：本组合无防御性资产（国债/货币ETF），权益暴露 100%，需自备现金缓冲</li>
       <li>· 所有信号为量化参考，须结合宏观与自身资金状况</li>
     </ul></div>
   </div>
@@ -1403,8 +1555,11 @@ def render_dashboard(meta: dict, ratio: dict, etfs: list, macro: dict = None, co
     创业板红利比为归一化相对强弱（各自相对基期涨幅之比），基期随数据源起点变化、分位不受影响（实测跨源分位一致）；不构成估值信号。<br>
     PE分位口径：近1年250交易日 / 近3年750 / 近5年1250，样本数为窗口内实际交易日；主信号取近3年。<br>
     PE 历史序列以积累库中证官网官方PE（peg口径，指数上市以来全历史）为主，缺失区间按指数点位比例回推估算，分位仅供相对估值参考。<br>
-    V3 决策：估值维度仅使用积累库中证官方PE（≥200条有效记录）参与综合评分，样本不足时该维度标注"数据不足"、不参与决策；<br>
-    长期趋势向下或风险过高时不因 RSI 超卖 / PE 低估直接给出强烈买入；综合评分 = 趋势30% × 估值40% × 风险30%（估值缺失时趋势/风险对半）。<br>
+    V4 决策（依据 GPT 代码评审 P0）：先过<b>数据质量闸门</b>——行情滞后/样本不足/趋势缺失/风险缺失/估值不足/来源降级逐项标注，前序闸门与风险警告具有否决权，后面的高分不能推翻前面的风险提示；<br>
+    缺失维度不再用 0.5 中性值掩盖：只在可用维度上归一化权重（w 与 score_scope 明示参与维度），风险指标全缺失时判「数据不足」而非「低风险」；<br>
+    输出六种操作状态（允许分批加仓 / 正常定投 / 持有观察 / 暂停新增 / 再平衡评估 / 暂不判断），综合评分仅作辅助排序；每条给出理由、数据日期与来源、仓位参照、下一步条件；<br>
+    综合评分 = 趋势30% × 估值40% × 风险30%（缺维度时按可用维度归一化，不填中性值）；仓位上下限与集中度来自 portfolio_config.json（唯一配置来源，页面/文档/回测同口径）；<br>
+    回测 backtest.py（V4）：修复「换仓当日收益与卖出成本被乘零」的缺陷，成本按成交金额买卖双向计入净值；结果为价格回报口径（未计分红再投资），须与买入持有基准对照阅读。<br>
     综合评分=做多友好度（0-100）：越高越适合买入（红色=高分位关注机会，蓝=低分位谨慎）；股息率来自中证官网XLS（近约20期官方口径），与PE数据源分离。<br>
     评分归因透明化：决策简报展示三维子分数（趋势/估值/风险各0-100）与权重敏感性（估值权重40%→30%的评分变化）；估值缺失标的（官方PE&lt;200条）评分与完整数据标的不可直接横向比较。<br>
     数据新鲜度对账：卡片"行情新/行情滞后"徽章与数据主日期强制对账，行情静默断更时滞后标的会标黄提示，防止旧数据冒充新数据参与判断。<br>
@@ -1422,28 +1577,39 @@ const DATA = {payload_json};
 const badges = DATA.meta.badges.map(b => `<span class="badge ${{b.ok?'ok':'warn'}}">${{b.label}}</span>`).join('');
 document.getElementById('badges').innerHTML = badges;
 
-/* 宏观环境：利率 / 政策 / 情绪 */
+/* 宏观环境：利率 / 政策 / 情绪（V4 P0-5：每项都带「发布日期 + 更新状态」） */
 (function () {{
   const M = DATA.macro || {{}};
   const el = (id) => document.getElementById(id);
+  const ST = M.status || {{}};
+  const SD = M.stale_days || {{}};
+  const TH = M.thresholds || {{}};
+  const stChip = (k) => {{
+    const s = ST[k];
+    if (s === 'fail') return '<span class="gate-chip gate-block">获取失败</span>';
+    if (s === 'stale') {{
+      const d = (SD[k] === null || SD[k] === undefined) ? '' : ' ' + SD[k] + '天';
+      return '<span class="gate-chip gate-warn">陈旧' + d + ' · 不参与判断</span>';
+    }}
+    return '<span class="gate-chip gate-ok">正常</span>';
+  }};
   const y10 = M.y10 !== null && M.y10 !== undefined;
   if (y10) {{
-    el('macro-rate').innerHTML = '10Y国债 <b>' + M.y10.toFixed(2) + '%</b>（' + (M.y10_chg>=0?'+':'') + M.y10_chg.toFixed(0) + 'bp 较20日前 · ' + M.y10_date + '）';
+    el('macro-rate').innerHTML = '10Y国债 <b>' + M.y10.toFixed(2) + '%</b>（' + (M.y10_chg >= 0 ? '+' : '') + M.y10_chg.toFixed(0) + 'bp 较20日前 · 数据日 ' + M.y10_date + '）' + stChip('y10');
     const r = el('macro-rate');
-    r.classList.add(M.y10_label && M.y10_label.indexOf('宽松')>=0 ? 'ok' : (M.y10_label && M.y10_label.indexOf('偏紧')>=0 ? 'warn' : ''));
+    r.classList.add(M.y10_label && M.y10_label.indexOf('宽松') >= 0 ? 'ok' : (M.y10_label && M.y10_label.indexOf('偏紧') >= 0 ? 'warn' : ''));
   }} else {{
-    el('macro-rate').textContent = '10Y国债 --（数据暂缺）';
+    el('macro-rate').innerHTML = '10Y国债 获取失败（接口未返回有效数据）' + stChip('y10');
   }}
   const pol = [];
-  if (M.lpr1 !== null && M.lpr1 !== undefined) pol.push('LPR 1Y <b>' + M.lpr1.toFixed(1) + '%</b> / 5Y <b>' + M.lpr5.toFixed(1) + '%</b>');
-  if (pol.length) {{
-    el('macro-policy').innerHTML = pol.join(' ｜ ') + (M.policy_date ? '<span style="font-size:10px;color:var(--sub)">（政策条目维护于 ' + M.policy_date + '）</span>' : '');
-  }}
-  else el('macro-policy').textContent = 'LPR --（数据暂缺）';
+  if (M.lpr1 !== null && M.lpr1 !== undefined) pol.push('LPR 1Y <b>' + M.lpr1.toFixed(1) + '%</b> / 5Y <b>' + M.lpr5.toFixed(1) + '%</b>（发布日 ' + (M.lpr_date || '--') + '）');
+  let polHtml = pol.length ? pol.join(' ｜ ') : 'LPR 获取失败';
+  if (M.policy_date) polHtml += '<span style="font-size:10px;color:var(--sub)">（政策条目维护于 ' + M.policy_date + '；自动指标与手动条目分列，手动条目不参与评分）</span>';
+  el('macro-policy').innerHTML = polHtml + stChip('lpr');
   const mk = M.mkt !== null && M.mkt !== undefined;
   if (mk) {{
-    const yiyuan = (M.mkt/1e5).toFixed(0);          // 千元→亿元
-    const wanYi = (M.mkt/1e9).toFixed(2);           // 千元→万亿元
+    const yiyuan = (M.mkt / 1e5).toFixed(0);          // 千元→亿元
+    const wanYi = (M.mkt / 1e9).toFixed(2);           // 千元→万亿元
     const rt = M.mkt_ratio;
     let lab = '平稳', cls = '';
     if (rt !== null && rt !== undefined) {{
@@ -1451,12 +1617,16 @@ document.getElementById('badges').innerHTML = badges;
       else if (rt <= 0.8) {{ lab = '缩量(' + rt.toFixed(2) + 'x20日均)'; cls = 'ok'; }}
       else lab = '平稳(' + rt.toFixed(2) + 'x20日均)';
     }}
-    el('macro-mkt').innerHTML = '两市成交约 <b>' + wanYi + '万亿</b>（' + yiyuan + '亿 · ' + M.mkt_date + '）· ' + lab;
+    el('macro-mkt').innerHTML = '两市成交约 <b>' + wanYi + '万亿</b>（' + yiyuan + '亿 · 数据日 ' + M.mkt_date + '）· ' + lab + stChip('mkt');
     if (cls) el('macro-mkt').classList.add(cls);
   }} else {{
-    el('macro-mkt').textContent = '两市成交 --（数据暂缺）';
+    el('macro-mkt').innerHTML = '两市成交 获取失败（接口未返回有效数据）' + stChip('mkt');
   }}
-  el('macro-note').textContent = '利率/情绪为自动采集口径；政策风向为手动维护条目（维护日见上，每周更新）——详见操作纪律与README。';
+  const bad = ['y10', 'lpr', 'mkt'].filter(k => ST[k] === 'fail').length;
+  const stale = ['y10', 'lpr', 'mkt'].filter(k => ST[k] === 'stale').length;
+  el('macro-note').textContent = '采集状态：失败 ' + bad + ' 项 / 陈旧 ' + stale + ' 项；陈旧或获取失败的数据只作历史参考，不进入环境判断'
+    + '（新鲜度阈值：国债' + (TH.y10 || 10) + '天 / LPR' + (TH.lpr || 45) + '天 / 成交额' + (TH.mkt || 5) + '天）。'
+    + '政策风向为手动维护条目，维护日见上，每周更新——详见操作纪律与README。';
 }})();
 
 /* 创业板红利比 */
@@ -1492,7 +1662,7 @@ if (R) {{
   }}
 }}
 
-/* V3 交易决策简报 */
+/* V4 辅助决策简报：数据质量闸门 → 三维评分 → 六种操作状态 */
 function briefColor(score) {{
   if (score === null || score === undefined) return '#94a3b8';
   if (score >= 70) return '#ef4444';
@@ -1500,31 +1670,58 @@ function briefColor(score) {{
   if (score >= 40) return '#eab308';
   return '#3b82f6';
 }}
+function stateBadge(d) {{
+  const ST = {{
+    allow_add:  ['#ef4444', 'rgba(239,68,68,.14)'],
+    normal_dca: ['#f97316', 'rgba(249,115,22,.14)'],
+    hold:       ['#eab308', 'rgba(234,179,8,.14)'],
+    pause:      ['#3b82f6', 'rgba(59,130,246,.14)'],
+    rebalance:  ['#8b5cf6', 'rgba(139,92,246,.14)'],
+    skip:       ['#94a3b8', 'rgba(148,163,184,.14)']
+  }};
+  const st = d.state || 'skip';
+  const t = ST[st] || ST.skip;
+  return '<span class="st-badge" style="color:' + t[0] + ';background:' + t[1] + ';border-color:' + t[0] + '66">'
+       + (d.state_label || '暂不判断') + '</span>';
+}}
+function gateChips(g) {{
+  const flags = (g && g.flags) || [];
+  if (!flags.length) return '<span class="gate-chip gate-ok">数据质量闸门通过</span>';
+  return flags.map(f => '<span class="gate-chip gate-' + (f.level === 'block' ? 'block' : (f.level === 'warn' ? 'warn' : 'ok')) + '">'
+         + (f.label || '') + '</span>').join('');
+}}
 (function () {{
   const wrap = document.getElementById('decision-brief');
   if (!wrap) return;
   const combo = document.getElementById('combo-banner');
   if (combo) {{
-    const sugList = DATA.etfs.map(e => (e.decision || {{}}).suggestion || '');
-    if (sugList.length) {{
-      const allPause = sugList.every(s => s.indexOf('暂停') >= 0);
-      const anyPause = sugList.some(s => s.indexOf('暂停') >= 0);
-      let txt = '';
-      if (allPause) txt = '组合状态：组合标的均「暂停新增」→ 保留现金弹药、等待估值回落；闲置资金可配置货币基金/国债逆回购（1-7天）获取流动收益，按再平衡纪律维持底仓；持仓较重者可借反弹分批减仓至目标仓位，不追高。';
-      else if (anyPause) txt = '组合状态：部分标的「暂停新增」，关注其估值回落后再分批介入；现金与持仓比例按自身风险偏好管理。';
-      if (txt) combo.innerHTML = '<div style="font-size:12px;line-height:1.6;padding:6px 10px;border-radius:6px;background:#1b2438;border:1px solid #2a3654;color:var(--sub)">' + txt + '</div>';
+    const st = DATA.etfs.map(e => (e.decision || {{}}).state || 'skip');
+    const nAdd = st.filter(s => s === 'allow_add').length;
+    const nHold = st.filter(s => s === 'hold' || s === 'normal_dca').length;
+    const nStop = st.filter(s => s === 'pause' || s === 'skip').length;
+    let txt = '';
+    if (nAdd > 0) {{
+      txt = '组合状态：' + nAdd + ' 只标的通过闸门并满足分批加仓条件（' + nHold + ' 只持有/定投、' + nStop + ' 只暂停/暂不判断）。加仓按 40/30/30 三笔执行，前一笔未站稳不加下一笔；单只不超过配置上限。';
+    }} else if (nStop >= st.length && st.length > 0) {{
+      txt = '组合状态：全部标的处于「暂停新增/暂不判断」→ 保留现金弹药，等待估值回落与趋势确认；闲置资金可配置货币基金/国债逆回购（1-7天）获取流动收益，按再平衡纪律维持底仓。';
+    }} else {{
+      txt = '组合状态：无标的同时满足主动加仓条件（' + nHold + ' 只持有/正常定投、' + nStop + ' 只暂停或数据不足）。以持有与纪律定投为主，不追高、不机械补仓。';
     }}
+    const gs = DATA.data_gate || {{}};
+    const gTxt = '数据质量闸门：通过 ' + (gs.ok || 0) + ' 只 ｜ 告警 ' + (gs.warn || 0) + ' 只 ｜ 阻断 ' + (gs.block || 0) + ' 只';
+    combo.innerHTML = '<div style="font-size:12px;line-height:1.6;padding:6px 10px;border-radius:6px;background:#1b2438;border:1px solid #2a3654;color:var(--sub)">'
+      + txt + '<br><span style="font-size:11px">' + gTxt + '</span></div>';
   }}
   DATA.etfs.forEach(e => {{
     const d = e.decision || {{}};
     const sc = d.score;
     const barColor = briefColor(sc);
+    const g = e.gate || {{}};
     const trendTxt = e.trend && e.trend.label ? e.trend.label : '--';
     const riskTxt = e.risk && e.risk.label ? e.risk.label : '--';
     const valTxt = d.val || '--';
     const batchTxt = e.batch ? e.batch.text : '--';
     const reasons = (d.reasons || []).join(' ｜ ');
-    // 三维子分数 + 权重敏感性（DeepSeek评审P1：评分归因透明化）
     const sub = d.sub || {{}};
     const subParts = ['trend','val','risk'].map(k => {{
       const lab = k==='trend' ? '趋势' : (k==='val' ? '估值' : '风险');
@@ -1532,30 +1729,40 @@ function briefColor(score) {{
       return lab + ' <b>' + (sv===null||sv===undefined ? '--' : sv) + '</b>';
     }}).join(' · ');
     const w = d.w || {{}};
+    const scopeTxt = (d.score_scope && d.score_scope.length)
+      ? '参与维度 ' + d.score_scope.map(k => k==='trend'?'趋势':(k==='val'?'估值':'风险')).join('+') + '（缺失维度权重为0，不填中性值）'
+      : '无维度可参与';
     const sensTxt = (w.val && w.val > 0)
       ? '估值权重40%→30%时评分 ' + (sc===null||sc===undefined?'--':sc) + ' → ' + (d.score_alt===null||d.score_alt===undefined?'--':d.score_alt)
-      : '估值未参与：权重趋势/风险对半，无敏感性';
+      : '估值未参与，无敏感性';
     const valMissWarn = (w.val === 0)
-      ? '<span style="display:block;font-size:11px;color:#fbbf24;margin-top:4px">⚠ 估值缺失：本评分与官方PE完整标的不可直接横向比较</span>'
+      ? '<span style="display:block;font-size:11px;color:#fbbf24;margin-top:4px">⚠ 估值缺失：不使用估值维度，本评分与官方PE完整标的不可直接横向比较</span>'
       : '';
     const qualWarn = (d.quality !== undefined && d.quality !== null && d.quality < 100)
-      ? '<span style="display:block;font-size:11px;color:#fbbf24;margin-top:4px">⚠ 数据完整度 ' + d.quality + '%，缺失维度未参与评分，参考性降低</span>'
+      ? '<span style="display:block;font-size:11px;color:#fbbf24;margin-top:4px">⚠ 数据完整度 ' + d.quality + '%，缺失维度未参与评分，可信度降低</span>'
       : '';
     const stepsHtml = e.batch && e.batch.steps
       ? e.batch.steps.map(s => `<span class="chip">${{s.phase}} ${{s.ratio}}：${{s.trigger}}</span>`).join('')
       : '';
     const atrTxt = e.atr_ref && e.atr_ref.text ? e.atr_ref.text : '--';
+    const pos = e.pos || {{}};
+    const posTxt = '基准 ' + (pos.base_w===null||pos.base_w===undefined?'--':pos.base_w+'%')
+                 + ' ｜ 上限 ' + (pos.max_w===null||pos.max_w===undefined?'--':pos.max_w+'%')
+                 + ' ｜ 下限 ' + (pos.min_w===null||pos.min_w===undefined?'--':pos.min_w+'%');
+    const nextHtml = (d.next_conditions && d.next_conditions.length)
+      ? '<span class="next-cond">下一步条件：' + d.next_conditions.slice(0,3).join('；') + '</span>' : '';
     wrap.insertAdjacentHTML('beforeend', `
       <div class="dc-row" style="border-top:3px solid ${{e.color}};padding-top:8px">
-        <div class="dc-block" style="flex:0 0 160px">
+        <div class="dc-block" style="flex:0 0 170px">
           <span class="k">${{e.name}} ${{e.code}}</span>
-          <span class="v">综合评分 <b style="font-size:20px;color:${{barColor}}">${{sc===null||sc===undefined?'--':sc}}</b><span style="font-size:11px;color:var(--sub)">/100</span></span>
+          <div style="margin:2px 0 6px">${{stateBadge(d)}}</div>
+          <span class="v">综合评分 <b style="font-size:20px;color:${{barColor}}">${{sc===null||sc===undefined?'--':sc}}</b><span style="font-size:11px;color:var(--sub)">/100（仅辅助排序）</span></span>
           <div class="scorebar"><div style="width:${{sc===null||sc===undefined?0:sc}}%;background:${{barColor}}"></div></div>
           <span style="font-size:11px;color:var(--sub)">数据完整度 ${{d.quality===undefined||d.quality===null?'--':d.quality+'%'}} · 官方PE ${{e.official_pe_count}}条</span>
           <span class="k" style="margin-top:5px">三维子分数</span>
           <span class="v" style="font-weight:400;font-size:12px;line-height:1.5">${{subParts}}</span>
           <span class="k" style="margin-top:4px">权重敏感性</span>
-          <span class="v" style="font-weight:400;font-size:11px;color:var(--sub)">${{sensTxt}}</span>
+          <span class="v" style="font-weight:400;font-size:11px;color:var(--sub)">${{sensTxt}}<br>${{scopeTxt}}</span>
           ${{valMissWarn}}
           ${{qualWarn}}
         </div>
@@ -1564,20 +1771,78 @@ function briefColor(score) {{
           <span class="v">${{trendTxt}} · ${{valTxt}} · ${{riskTxt}}</span>
           <span class="k" style="margin-top:4px">主要判断依据</span>
           <span class="v" style="font-weight:400;font-size:12px;line-height:1.6">${{reasons||'--'}}</span>
+          <span class="k" style="margin-top:4px">数据质量闸门</span>
+          <div class="gate-row">${{gateChips(g)}}</div>
         </div>
         <div class="dc-block">
-          <span class="k">当前建议</span>
-          <span class="v" style="color:${{d.sug_color||'#94a3b8'}}">${{d.suggestion||'--'}}</span>
+          <span class="k">当前建议（六状态）</span>
+          <span class="v" style="color:${{d.sug_color||'#94a3b8'}}">${{d.state_label||d.suggestion||'--'}}</span>
+          <span class="k" style="margin-top:4px">仓位参照</span>
+          <span class="v" style="font-weight:400;font-size:12px;color:var(--sub)">${{posTxt}}</span>
           <span class="k" style="margin-top:4px">分批纪律</span>
           <span class="v" style="font-weight:400;font-size:12px">${{batchTxt}}</span>
           ${{stepsHtml?`<div class="chips" style="margin-top:4px">${{stepsHtml}}</div>`:''}}
+          ${{nextHtml}}
         </div>
-        <div class="dc-block">
+        <div class="dc-block" style="flex:0 0 200px">
           <span class="k">ATR 参考价位</span>
           <span class="v" style="font-weight:400;font-size:12px;line-height:1.6">${{atrTxt}}</span>
+          <span class="k" style="margin-top:4px">数据日期 / 来源</span>
+          <span class="v" style="font-weight:400;font-size:11px;color:var(--sub)">行情 ${{e.latest_date||'--'}}${{g.stale_days!==null&&g.stale_days!==undefined?'（滞后'+g.stale_days+'天）':''}} ｜ PE ${{e.pe_last_date||'--'}} ｜ 官方PE·中证/国证/iFinD</span>
         </div>
       </div>`);
   }});
+}})();
+
+/* V4 组合配置体检渲染（基准权重合计 / 单品种上下限 / 集中度与强周期提示） */
+(function () {{
+  const box = document.getElementById('portfolio-check');
+  if (!box) return;
+  const P = DATA.portfolio || {{}};
+  const flags = P.flags || [];
+  const sum = (P.base_sum === undefined || P.base_sum === null) ? '--' : P.base_sum;
+  let html = '<div style="font-size:12px;line-height:1.75;color:var(--sub)">'
+    + '基准权重合计 <b style="color:' + (P.ok ? '#22c55e' : '#ef4444') + '">' + sum + '%</b>'
+    + (P.ok ? '（=100%，通过）' : '（≠100%，需修正配置）')
+    + '<br>'
+    + DATA.etfs.map(e => {{
+        const p = e.pos || {{}};
+        return e.name + ' ' + (p.base_w === undefined || p.base_w === null ? '--' : p.base_w + '%')
+             + (p.max_w === undefined || p.max_w === null ? '' : '（上限' + p.max_w + '%）');
+      }}).join(' ｜ ');
+  if (flags.length) {{
+    html += '<div class="gate-row" style="margin-top:6px">'
+      + flags.map(f => '<span class="gate-chip gate-'
+        + (f.level === 'warn' ? 'warn' : (f.level === 'block' ? 'block' : 'ok')) + '">' + (f.label || '') + '</span>').join('')
+      + '</div>';
+  }}
+  if (P.note) html += '<div style="font-size:11px;margin-top:4px">' + P.note + '</div>';
+  html += '</div>';
+  box.innerHTML = html;
+}})();
+
+/* V4 数据口径说明（P0-3）：来源 / 字段类型 / 计算口径 / 统计期间 / 最新日期 */
+(function () {{
+  const box = document.getElementById('provenance');
+  if (!box) return;
+  const rows = (DATA.meta && DATA.meta.provenance) || [];
+  if (!rows.length) {{ box.textContent = '数据口径元数据暂缺'; return; }}
+  let html = '<table style="width:100%;border-collapse:collapse;font-size:11.5px;line-height:1.55">'
+    + '<thead><tr style="text-align:left;color:var(--sub);border-bottom:1px solid #2a3242">'
+    + '<th style="padding:5px 6px">数据项</th><th style="padding:5px 6px">来源</th>'
+    + '<th style="padding:5px 6px">字段类型</th><th style="padding:5px 6px">计算口径</th>'
+    + '<th style="padding:5px 6px">统计期间</th><th style="padding:5px 6px">最新日期</th></tr></thead><tbody>';
+  rows.forEach(function (r) {{
+    html += '<tr style="border-bottom:1px solid #1c2432;vertical-align:top">'
+      + '<td style="padding:5px 6px;white-space:nowrap">' + (r.item || '') + '</td>'
+      + '<td style="padding:5px 6px">' + (r.source || '') + '</td>'
+      + '<td style="padding:5px 6px">' + (r.field || '') + '</td>'
+      + '<td style="padding:5px 6px">' + (r.calc || '') + '</td>'
+      + '<td style="padding:5px 6px;white-space:nowrap">' + (r.period || '') + '</td>'
+      + '<td style="padding:5px 6px;white-space:nowrap">' + (r.date || '--') + '</td></tr>';
+  }});
+  html += '</tbody></table>';
+  box.innerHTML = html;
 }})();
 
 /* 组合相关性渲染（近250交易日日收益） */
@@ -1759,7 +2024,7 @@ def render_fallback(meta: dict):
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ETF 智能监测看板（数据暂不可用）</title>
+<title>ETF 辅助决策看板 V4（数据暂不可用）</title>
 <style>
   body {{ background:#0b1020; color:#e6ebf5; font-family:"Microsoft YaHei",system-ui,sans-serif;
          display:flex; align-items:center; justify-content:center; min-height:100vh; margin:0; }}
@@ -1770,7 +2035,7 @@ def render_fallback(meta: dict):
 </head>
 <body>
 <div class="box">
-  <h1>ETF 智能监测看板 · 数据暂不可用</h1>
+  <h1>ETF 辅助决策看板 V4 · 数据暂不可用</h1>
   <p>本次运行（{meta['gen_time']}）所有行情数据源均获取失败。<br>
      请稍后在仓库 Actions 页手动「Run workflow」重试。<br>
      若此前已有看板，将保留上一次成功快照。</p>
@@ -1799,9 +2064,11 @@ def main():
     except Exception:
         pass
     cloud_mode = "--cloud" in sys.argv  # 云端(GitHub Actions)容错模式
-    meta = {"data_date": "--", "gen_time": run_at.strftime("%Y-%m-%d %H:%M:%S"), "badges": []}
+    meta = {"data_date": "--", "gen_time": run_at.strftime("%Y-%m-%d %H:%M:%S"), "badges": [],
+            "version": V4_VERSION, "strategy_version": STRATEGY_VERSION, "config_source": CONFIG_SOURCE}
     badges = [{"label": "东方财富行情", "ok": True}, {"label": "中证指数官方估值", "ok": True},
-              {"label": "估值分位·日频估算(3Y)", "ok": True}]
+              {"label": "估值分位·日频估算(3Y)", "ok": True},
+              {"label": "数据质量闸门 V4", "ok": True}]
 
     # ---- 风格轮动：创业板红利比 ----
     ratio = build_ratio()
@@ -1872,7 +2139,8 @@ def main():
         # 官方 PE 积累历史（V3 决策引擎估值维度：仅 ≥200 条有效记录参与）
         pe_hist_official = sub_acc.dropna(subset=["pe"]).copy() if sub_acc is not None and not sub_acc.empty else None
 
-        sig = build_signal(name, cfg, price_df, val_latest, pe_series, pe_hist_official)
+        sig = build_signal(name, cfg, price_df, val_latest, pe_series, pe_hist_official,
+                           run_date=run_at.date(), src_flags=dict(SRC_STATS))
         _ow = (sig.get("official_pe_windows") or {})
         sig["special"] = build_special(name, cfg, price_df, val_latest, macro, price_rets,
                                        official_ctx={"ow_main": _ow.get(PE_MAIN_WINDOW),
@@ -1894,9 +2162,12 @@ def main():
         p3 = w.get("近3年") or {}
         p5 = w.get("近5年") or {}
         d = sig["decision"] or {}
+        g = sig.get("gate") or {}
         log(f"{name}: 收盘 {sig['close']:.3f} | PE {sig['pe']} 分位 1Y {p1.get('pct')}% / "
             f"3Y {p3.get('pct')}% / 5Y {p5.get('pct')}% (n={p1.get('n')}/{p3.get('n')}/{p5.get('n')}) | "
-            f"官方PE {sig['official_pe_count']}条 | 决策 {d.get('score')}分[{d.get('quality')}%] {d.get('suggestion')}")
+            f"官方PE {sig['official_pe_count']}条 | 决策 {d.get('score')}分[{d.get('quality')}%] "
+            f"状态「{d.get('state_label')}」| 闸门 {g.get('level', 'ok')}"
+            + (f"（{g.get('summary')}）" if g.get("summary") and g.get("level") != "ok" else ""))
 
         # V3：输出价格历史 CSV（供 backtest.py 回测，每日运行自动积累）
         try:
@@ -1944,9 +2215,88 @@ def main():
         meta["data_date"] = main_date if data_dates else "--"
     for s in etfs:
         s["fresh"] = "ok" if s["latest_date"] == main_date else "lag"
+    # V4 数据质量闸门汇总（badge 与页面提示使用）
+    gate_levels = [(s.get("gate") or {}).get("level", "ok") for s in etfs]
+    n_block = sum(1 for x in gate_levels if x == "block")
+    n_warn = sum(1 for x in gate_levels if x == "warn")
+    badges[3]["ok"] = (n_block == 0 and n_warn == 0)
+    badges[3]["label"] = ("数据质量闸门 V4：通过" if badges[3]["ok"] else
+                          f"数据质量闸门 V4：{n_block} 项阻断 / {n_warn} 项告警")
+    meta["data_gate"] = {"block": n_block, "warn": n_warn,
+                         "ok": len(gate_levels) - n_block - n_warn,
+                         "items": [{"name": s["name"], "code": s["code"],
+                                    "level": (s.get("gate") or {}).get("level", "ok"),
+                                    "flags": (s.get("gate") or {}).get("flags", [])} for s in etfs]}
     meta["badges"] = badges
     # 实际生效行情源统计（千问评审二轮D-11：数据源状态标识与实际一致）
     meta["src_stats"] = dict(SRC_STATS)
+
+    # V4 组合配置体检（P0-4 一致性 + 集中度静态校验）
+    try:
+        _cfg_list = [dict(name=n, **c) for n, c in ETF_POOL.items()]
+        meta["portfolio"] = decision_engine.portfolio_check(
+            _cfg_list, [s.get("decision") for s in etfs])
+    except Exception as e:
+        log(f"组合配置体检失败: {e}")
+        meta["portfolio"] = {"ok": False, "flags": [{"level": "warn", "label": f"组合体检异常: {e}"}],
+                             "note": "组合体检未完成"}
+
+    # V4 P0-3 数据口径元数据：每项数据都登记 来源 / 字段类型 / 计算口径 / 统计期间 / 最新日期
+    try:
+        prov = []
+        for s in etfs:
+            prov.append({
+                "item": f"{s['name']} 日线行情",
+                "source": "东方财富(qfq) 优先，失败自动降级 腾讯/新浪(不复权)",
+                "field": "收盘价（东财为前复权；腾讯/新浪为不复权原始成交价）",
+                "calc": "技术指标与回测均在同一段序列内计算；跨源拼接存在复权口径差异，历史点位不可跨源直接对比",
+                "period": f"{s.get('price_start', '--')} ~ {s.get('latest_date', '--')}（{s.get('price_rows', 0)} 条）",
+                "date": s.get("latest_date"),
+            })
+            prov.append({
+                "item": f"{s['name']} 官方 PE-TTM",
+                "source": "中证指数官网 / 国证指数官网（指数口径）",
+                "field": "指数 PE-TTM 官方发布值（非 ETF 基金口径，非估算）",
+                "calc": f"分位 = 该指数官方 PE 历史中的百分位（累计 {s.get('official_pe_count', 0)} 条）",
+                "period": f"累计库至 {s.get('pe_last_date') or '--'}",
+                "date": s.get("pe_last_date"),
+            })
+        prov.append({
+            "item": "股息率 · 10Y国债利差",
+            "source": "中证官方股息率 XLS + 英为财情中国 10Y 国债收益率",
+            "field": "股息率(近12月) 与无风险利率之差",
+            "calc": "利差 > 0 表示股息仍高于无风险利率（红利/银行/煤炭/红利低波适用）",
+            "period": "按指数股息率最新一期 XLS",
+            "date": meta.get("data_date"),
+        })
+        prov.append({
+            "item": "宏观环境（利率/政策/情绪）",
+            "source": "英为财情（10Y国债）、央行（LPR，akshare 抓取）、腾讯指数（两市成交额）",
+            "field": "国债收益率(%)、LPR(%)、两市成交额(千元→万亿元)",
+            "calc": "每项带更新状态 ok/stale/fail；stale 或 fail 不参与环境判断（阈值见宏观卡）",
+            "period": "国债近120天 / LPR 最新一期 / 成交额最新交易日",
+            "date": meta.get("data_date"),
+        })
+        prov.append({
+            "item": "回测（backtest.py V4）",
+            "source": "本地/云端 output/price_history_<code>.csv",
+            "field": "日收盘价（口径同上述行情源，东财段 qfq、腾讯/新浪段不复权）",
+            "calc": "价格回报口径，未计分红再投资；成本 = (fee+slippage)×|仓位变化|，买卖双边计入；异常收益(|日涨跌|>11%)单独标记",
+            "period": "各标的上巿以来（159201 仅 2025-02 起真实交易史）",
+            "date": "--",
+        })
+        prov.append({
+            "item": "159201 三种历史（务必区分）",
+            "source": "ETF 行情 / 国证 980092 指数 / 策略规则回放",
+            "field": "ETF 真实交易史 ≠ 跟踪指数史 ≠ 规则回测史",
+            "calc": "ETF 实际交易史自 2025-02 上市；980092 指数史仅用于 PE 分位与估值；规则回测是在 ETF 真实价格上按策略规则回放，非指数回测",
+            "period": "ETF 交易史 2025-02 起 / 指数史更长",
+            "date": "--",
+        })
+        meta["provenance"] = prov
+    except Exception as e:
+        log(f"数据口径元数据构建失败: {e}")
+        meta["provenance"] = []
 
     # ---- 组合相关性（近250交易日日收益两两相关系数）----
     corr = {}

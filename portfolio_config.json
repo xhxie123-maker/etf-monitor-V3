@@ -1,0 +1,124 @@
+{
+  "version": "V4.0",
+  "strategy_version": "v4-p0-2026-11-06",
+  "updated": "2026-11-06",
+  "description": "V4 中央配置（唯一来源）：ETF 池、基准权重与仓位上下限、资产类别、组合集中度、调仓阈值、决策引擎阈值、回测成本参数、数据质量阈值。etf_monitor.py / decision_engine.py / backtest.py 均从本文件读取，避免页面、文档、回测三套规则不一致。",
+  "etfs": [
+    {
+      "code": "515180",
+      "name": "红利ETF",
+      "index_code": "000922",
+      "index_name": "中证红利",
+      "asset_class": "style_satellite",
+      "role": "高股息压舱石",
+      "color": "#e6b31e",
+      "base_w": 25,
+      "max_w": 40,
+      "min_w": 12,
+      "cyclic": false
+    },
+    {
+      "code": "516310",
+      "name": "银行ETF",
+      "index_code": "399986",
+      "index_name": "中证银行",
+      "asset_class": "style_satellite",
+      "role": "低估值稳息品种",
+      "color": "#3b82f6",
+      "base_w": 20,
+      "max_w": 30,
+      "min_w": 8,
+      "cyclic": false
+    },
+    {
+      "code": "515220",
+      "name": "煤炭ETF",
+      "index_code": "000820",
+      "index_name": "中证煤炭",
+      "asset_class": "style_satellite",
+      "role": "强周期高波动品种",
+      "color": "#f97316",
+      "base_w": 20,
+      "max_w": 30,
+      "min_w": 8,
+      "cyclic": true,
+      "research_cap_w": 10,
+      "note": "强周期行业：盈利下行期 PE 被动抬升，高分位≠高估，需结合煤价位置/盈利与股息率判断；参考做T与仓位纪律而非单纯PE分位。V4 风险预算研究建议：稳健策略下煤炭单品种研究上限约 10%（GPT评审P1-1），当前仍按既有 max_w 执行，是否收紧由使用者按自身风险承受能力决定。"
+    },
+    {
+      "code": "159201",
+      "name": "自由现金流ETF",
+      "index_code": "980092",
+      "index_name": "国证自由现金流",
+      "asset_class": "style_satellite",
+      "role": "现金流质量成长品种",
+      "color": "#14b8a6",
+      "base_w": 15,
+      "max_w": 25,
+      "min_w": 8,
+      "cyclic": false,
+      "note": "2025-02上市、历史<3年：官方PE已接入（iFinD全历史播种2016-01起+腾讯日频增量，国证980092指数口径，PE-TTM），估值参与决策评分；另保留十大权重加权参考估值(腾讯)与IOPV溢价率作观测（非官方指数估值、仅参考）；以价格/趋势/技术面与组合相关性为主要追踪维度"
+    },
+    {
+      "code": "563020",
+      "name": "红利低波ETF",
+      "index_code": "H30269",
+      "index_name": "中证红利低波动",
+      "asset_class": "style_satellite",
+      "role": "低波红利压舱石",
+      "color": "#a78bfa",
+      "base_w": 20,
+      "max_w": 30,
+      "min_w": 10,
+      "cyclic": false,
+      "note": "2023-12上市（约3年）；指数基日2005-12-30、官方PE全历史可用（中证官网indexCsiDsPe，2013-12起），估值分位完整；以低波动+高股息为特征，年化波动率与相对红利超额（vs红利ETF 515180）为专属观察维度"
+    }
+  ],
+  "portfolio": {
+    "concentration": {
+      "single_etf_max_w": 40,
+      "family_group_max_w": {
+        "红利家族": 45
+      },
+      "family_groups": {
+        "红利家族": ["515180", "563020"]
+      },
+      "cyclic_single_research_cap_w": 10
+    },
+    "rebalance": {
+      "calendar": "semiannual",
+      "calendar_months": [6, 12],
+      "deviation_pp": 10,
+      "deviation_mode": "absolute_pp",
+      "note": "±10 为绝对百分点偏离（目标20%、实际30%即偏离+10pp）；相对偏离口径未启用"
+    },
+    "dca": {
+      "double_below_pct": 20,
+      "normal_below_pct": 40,
+      "half_below_pct": 70
+    },
+    "risk_budget": {
+      "max_portfolio_dd_warn_pct": -20
+    }
+  },
+  "engine": {
+    "pe_min_official": 200,
+    "pe_low_pct": 30,
+    "pe_high_pct": 70,
+    "weights": {"trend": 0.3, "val": 0.4, "risk": 0.3},
+    "weights_sensitivity": {"trend": 0.35, "val": 0.3, "risk": 0.35},
+    "state_policy": "数据质量闸门与前序风险闸门具有否决权：行情滞后 / 风险数据缺失 / 数据源异常时，禁止输出主动加仓信号。"
+  },
+  "backtest": {
+    "fee": 0.001,
+    "slippage": 0.001,
+    "fill": "next_close",
+    "fee_note": "单边比例；买卖双向均按成交金额扣除 fee+slippage；成交假设为信号次日收盘价（仅 close 数据时可执行的最保守假设）"
+  },
+  "data_quality": {
+    "price_stale_days": 3,
+    "pe_stale_days": 10,
+    "min_price_rows": 130,
+    "note": "行情最新交易日距运行日超过 price_stale_days 个自然日视为滞后；PE 口径最新观测超过 pe_stale_days 个自然日视为口径陈旧"
+  }
+}

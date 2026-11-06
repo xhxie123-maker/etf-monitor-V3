@@ -1,15 +1,20 @@
 # -*- coding: utf-8 -*-
 """
-V3 交易决策引擎（etf-monitor-v3）
+V4 交易决策引擎（etf-monitor-v4）
 =================================
-将判断拆为 趋势 / 估值 / 风险 三个维度，输出综合评分(0-100)、
-数据完整度、建议档位、主要依据、分批建仓纪律与 ATR 参考价位。
+将判断拆为 趋势 / 估值 / 风险 三个维度，并经数据质量闸门后输出综合评分(0-100)、
+数据完整度、六种操作状态、主要依据、分批建仓纪律与 ATR 参考价位。
 
-设计原则（V3 核心）：
-1. 长期趋势向下或风险过高时，不再因为 RSI 超卖 / PE 低估就直接给出强烈买入建议。
-2. 估值只使用"积累的中证官方 PE 观测"：至少 200 条有效记录才计算历史分位并参与决策；
-   样本不足时该维度明确标注"数据不足"，不参与综合评分，宁可暂不判断也不硬算买卖结论。
-3. 本模块为纯函数（仅依赖 pandas/numpy），便于单元测试与复用。
+设计原则（V4 核心，依据 GPT 评审 P0）：
+1. **未知风险 ≠ 低风险**：风险指标（回撤/波动率/ADX）全部缺失时明确返回「数据不足」，
+   绝不因为"字典存在但字段为空"而误判低风险；风险数据缺失时禁止主动加仓。
+2. **前序闸门有否决权**：行情滞后 / 数据源异常 / 风险缺失 / 趋势缺失时，
+   后续高分不能推翻前序风险警告，最高只输出「暂停新增」或「暂不判断」。
+3. 估值只使用"积累的官方 PE 观测"：至少 200 条有效记录才计算历史分位并参与决策；
+   样本不足时该维度明确标注"数据不足"，不参与综合评分。
+4. 输出统一为六种操作状态（允许分批加仓/正常定投/持有观察/暂停新增/再平衡评估/暂不判断），
+   综合评分仅作辅助排序，不代表上涨概率。
+5. 本模块为纯函数（仅依赖 pandas/numpy），便于单元测试与复用。
 
 所有输出均为量化参考，不构成投资建议。
 """
@@ -36,6 +41,31 @@ RISK_DD120_MID = -15.0      # ≤ -15% → 中风险
 RISK_VOL_HIGH = 35.0        # 20日年化波动率 ≥ 35% → 高风险
 RISK_VOL_MID = 25.0         # ≥ 25% → 中风险
 RISK_ADX_STRONG = 40.0      # ADX ≥ 40 且趋势下降 → 高风险
+
+# V4 六种操作状态（GPT 评审：取消只盯单一综合评分）
+STATE_LABELS = {
+    "allow_add": "允许分批加仓",
+    "normal_dca": "正常定投",
+    "hold": "持有观察",
+    "pause": "暂停新增",
+    "rebalance": "再平衡评估",
+    "skip": "暂不判断",
+}
+STATE_COLORS = {
+    "allow_add": "#ef4444",
+    "normal_dca": "#f97316",
+    "hold": "#94a3b8",
+    "pause": "#3b82f6",
+    "rebalance": "#eab308",
+    "skip": "#94a3b8",
+}
+# 状态按"操作强度"排序，用于组合层汇总
+STATE_ORDER = ["skip", "pause", "hold", "rebalance", "normal_dca", "allow_add"]
+
+# 数据质量闸门默认阈值（与 portfolio_config.json 的 data_quality 段一致）
+GATE_PRICE_STALE_DAYS = 3
+GATE_PE_STALE_DAYS = 10
+GATE_MIN_PRICE_ROWS = 130
 
 
 def trend_state(ma20: float | None, ma60: float | None, ma120: float | None,
@@ -194,15 +224,26 @@ def risk_metrics(closes: pd.Series, highs: pd.Series | None = None,
 
 def risk_state(r: dict, trend: dict | None = None) -> dict:
     """
-    风险等级：低/中/高。
-    score: 低=1.0, 中=0.5, 高=0.0；数据不足=None。
+    风险等级：低/中/高；核心风险字段缺失时明确返回"数据不足"。
+    score: 低=1.0, 中=0.5, 高=0.0；数据不足=None（不参与决策，且禁止主动加仓）。
+
+    V4 修复（GPT 评审 P0-2）：V3 只判断 r 是否为 None，而 risk_metrics() 在样本不足时
+    返回的是"全 None 的字典"，导致 dd120/vol/adx 全部缺失时仍走到末尾返回「低风险 1.0」，
+    把"没有足够数据证明风险"误判为"风险很低"。V4 改为按字段可用性判定：
+      - 回撤(dd120)与波动率(vol20_ann)两个核心风险维度全部缺失 → 数据不足，绝不判低风险；
+      - 判为低风险时，desc 必须列明实际依据字段与数值，便于复核。
     """
     if r is None:
-        return {"label": "数据不足", "score": None, "desc": "风险数据不足", "available": False}
+        return {"label": "数据不足", "score": None, "desc": "风险数据缺失（无风险指标返回），未知风险不判低风险", "available": False}
     dd120 = r.get("dd120")
     vol = r.get("vol20_ann")
     adx = r.get("adx")
     t_label = (trend or {}).get("label")
+    core = [v for v in (dd120, vol) if v is not None]
+    if not core:
+        return {"label": "数据不足", "score": None,
+                "desc": "回撤/波动率核心风险指标均缺失（未知风险≠低风险），风险维度不参与决策",
+                "available": False}
     parts = []
     if dd120 is not None and dd120 <= RISK_DD120_HIGH:
         parts.append(f"距120日高点回撤{dd120:.0f}%")
@@ -219,7 +260,121 @@ def risk_state(r: dict, trend: dict | None = None) -> dict:
         mid.append(f"年化波动{vol:.0f}%")
     if mid:
         return {"label": "中风险", "score": 0.5, "desc": "；".join(mid), "available": True}
-    return {"label": "低风险", "score": 1.0, "desc": "ATR/波动率/回撤均处温和区间", "available": True}
+    basis = []
+    basis.append(f"距120日高点回撤{dd120:+.0f}%" if dd120 is not None else "回撤数据缺失")
+    basis.append(f"20日年化波动{vol:.0f}%" if vol is not None else "波动率数据缺失")
+    return {"label": "低风险", "score": 1.0, "desc": "；".join(basis) + "，均处温和区间", "available": True}
+
+
+def data_gate(price_last_date=None, run_date=None, price_rows: int | None = None,
+              pe_last_date=None, official_count: int = 0,
+              src_flags: dict | None = None, trend: dict | None = None,
+              risk: dict | None = None, val: dict | None = None,
+              price_stale_days: int = GATE_PRICE_STALE_DAYS,
+              price_stale_hard_days: int = 7,
+              pe_stale_days: int = GATE_PE_STALE_DAYS,
+              min_price_rows: int = GATE_MIN_PRICE_ROWS,
+              pe_min_official: int = PE_MIN_OFFICIAL) -> dict:
+    """
+    V4 数据质量闸门（GPT 评审 P0-2/P0-3）：在任何评分之前先校验数据可用性。
+
+    规则（与 GPT 数据状态闸门表一一对应）：
+      - 行情滞后超过 price_stale_hard_days → block：禁止用滞后行情生成当日操作信号，直接暂不判断；
+      - 行情滞后在 (price_stale_days, hard] 之间 → warn+block_add：可能为周末/长假休市或数据延迟，
+        当日不主动加仓（不直接判"暂不判断"，避免每个休市日都停掉全部判断）；
+      - 行情样本不足（< min_price_rows）→ warn+block_add；
+      - 趋势数据不足 → warn+block_add：暂不生成主动加仓判断；
+      - 风险数据不足 → warn+block_add：未知风险不得当作低风险；
+      - 估值数据不足（官方PE < pe_min_official）→ warn：不使用估值维度，降低决策可信度（不阻断加仓）；
+      - PE 口径陈旧 / 数据源降级 → warn：标记异常、降级为观察值；
+      - 多核心维度异常（趋势与风险同时缺失）→ fatal：直接输出暂不判断。
+
+    返回：{passed, block_add, fatal, level, flags:[{code,level,label,detail}], summary, stale_days}
+    """
+    flags = []
+    block_add = False
+    fatal = False
+
+    # --- 行情新鲜度 ---
+    stale_days = None
+    if price_last_date is not None and run_date is not None:
+        try:
+            stale_days = (pd.to_datetime(run_date).date() - pd.to_datetime(price_last_date).date()).days
+        except Exception:
+            stale_days = None
+    if stale_days is not None and stale_days > price_stale_days:
+        if stale_days > price_stale_hard_days:
+            flags.append({"code": "price_stale_hard", "level": "block",
+                          "label": f"行情断更 {stale_days} 天",
+                          "detail": f"最新行情日 {price_last_date} 距运行日 {run_date} 超过 {price_stale_hard_days} 天：禁止用滞后行情生成当日操作信号"})
+            fatal = True
+        else:
+            flags.append({"code": "price_stale", "level": "warn",
+                          "label": f"行情滞后 {stale_days} 天",
+                          "detail": f"最新行情日 {price_last_date} 距运行日 {run_date} 约 {stale_days} 天（可能为周末/休市或数据延迟）：当日不主动加仓"})
+        block_add = True
+
+    # --- 行情样本量 ---
+    if price_rows is not None and price_rows < min_price_rows:
+        flags.append({"code": "price_sample", "level": "warn",
+                      "label": f"价格样本不足（{price_rows} 条）",
+                      "detail": f"少于 {min_price_rows} 条，趋势/风险指标稳定性下降，禁止主动加仓"})
+        block_add = True
+
+    # --- 趋势维度 ---
+    if trend is not None and trend.get("score") is None:
+        flags.append({"code": "trend_missing", "level": "warn",
+                      "label": "趋势数据不足", "detail": "均线不足：暂不生成主动加仓判断"})
+        block_add = True
+
+    # --- 风险维度 ---
+    if risk is not None and risk.get("score") is None:
+        flags.append({"code": "risk_missing", "level": "warn",
+                      "label": "风险数据不足", "detail": "未知风险不得当作低风险：禁止主动加仓，仅允许观望/持有"})
+        block_add = True
+
+    # --- 估值维度（不阻断加仓，只降可信度）---
+    if val is not None and not val.get("available", False):
+        flags.append({"code": "val_missing", "level": "warn",
+                      "label": f"估值数据不足（官方PE {official_count} 条）",
+                      "detail": f"官方PE不足 {pe_min_official} 条：不使用估值维度，综合评分可信度降低"})
+
+    # --- PE 口径新鲜度 ---
+    if pe_last_date is not None and run_date is not None:
+        try:
+            pe_days = (pd.to_datetime(run_date).date() - pd.to_datetime(pe_last_date).date()).days
+            if pe_days > pe_stale_days:
+                flags.append({"code": "pe_stale", "level": "warn",
+                              "label": f"估值口径陈旧 {pe_days} 天",
+                              "detail": f"官方PE最新观测 {pe_last_date} 已过期（>{pe_stale_days} 天）：估值维度降级为观察值"})
+        except Exception:
+            pass
+
+    # --- 数据源异常 ---
+    if src_flags:
+        failed = {k: v for k, v in src_flags.items() if k.startswith("fail") and v}
+        if failed:
+            flags.append({"code": "src_fail", "level": "warn",
+                          "label": "数据源降级",
+                          "detail": "；".join(f"{k}={v}" for k, v in failed.items()) + "：已降价到备用源，来源一致性需人工核对"})
+
+    # --- 多核心维度异常 → 直接暂不判断 ---
+    if (trend is not None and trend.get("score") is None) and (risk is not None and risk.get("score") is None):
+        flags.append({"code": "multi_dim_fail", "level": "block",
+                      "label": "核心维度同时缺失", "detail": "趋势与风险维度均不可用：直接输出暂不判断"})
+        fatal = True
+
+    if fatal:
+        level = "block"
+    elif flags:
+        level = "warn"
+    else:
+        level = "ok"
+    summary = "；".join(f["label"] for f in flags) if flags else "数据质量校验通过"
+    return {"passed": not fatal, "block_add": block_add, "fatal": fatal,
+            "level": level, "flags": flags, "summary": summary,
+            "stale_days": stale_days}
+
 
 
 def data_quality(trend: dict, val: dict, risk: dict, official_count: int) -> int:
@@ -239,88 +394,173 @@ def _score100(x: float | None):
     return int(round((float(x) + 1) / 2 * 100))
 
 
-def decide(trend: dict, val: dict, risk: dict, official_count: int) -> dict:
+def decide(trend: dict, val: dict, risk: dict, official_count: int, gate: dict | None = None) -> dict:
     """
-    综合决策：输出 综合评分(0-100)、三维子分数、权重、权重敏感性、
-    数据完整度、建议档位、主要依据。
-    估值缺失时权重在趋势/风险间重分配；趋势下降或风险过高优先压制买入档位。
-    sub: 三维子分数（趋势/估值/风险 各 0-100，未参与维度为 None），用于评分归因透明化。
-    w:   实际生效权重 {trend, val, risk}。
-    score_alt: 估值权重 40%→30%（趋势/风险各 35%）时的敏感性评分，估值缺失时等于 score。
+    V4 综合决策：数据质量闸门 → 趋势/估值/风险三维评分 → 六种操作状态。
+
+    关键行为（GPT 评审 P0-2 修复）：
+      - 缺失维度不再用 0.5 中性值填充；只在可用维度上归一化权重，并在 w/score_scope 中
+        明确标出实际参与维度，避免"中性分数掩盖数据缺失"。
+      - 闸门否决：gate.fatal（行情滞后/多维度缺失）→ 暂不判断；
+        风险维度缺失（未知风险）→ 暂停新增；趋势缺失/趋势下降/高风险 → 暂停新增。
+        后续高分不能推翻前序风险警告。
+
+    返回字段：
+      score(0-100, 仅可用维度) / quality(数据完整度%) / state(六状态码) / state_label /
+      suggestion / sug_color / reasons / trend / risk / val / sub / w / score_alt /
+      gate / score_scope / next_conditions / position_note
     """
     t = trend.get("score")
     v = val.get("score")
     r = risk.get("score")
     t_label = trend.get("label")
     r_label = risk.get("label")
+    v_label = val.get("label")
+    gate = gate or {}
+    fatal = bool(gate.get("fatal"))
+    gate_block_add = bool(gate.get("block_add"))
+    quality = data_quality(trend, val, risk, official_count)
+    base_sub = {"trend": _score100(t), "val": _score100(v), "risk": _score100(r)}
+    gate_flags = gate.get("flags") or []
+
+    def _out(state, reasons, score=None, score_alt=None, w=None, scope=None, extra_reasons=None):
+        reasons = [x for x in reasons if x]
+        if gate_flags:
+            reasons.append("数据质量闸门：" + "；".join(f["label"] for f in gate_flags))
+        return {
+            "score": score,
+            "quality": quality,
+            "state": state,
+            "state_label": STATE_LABELS[state],
+            "suggestion": STATE_LABELS[state],
+            "sug_color": STATE_COLORS[state],
+            "reasons": reasons,
+            "trend": t_label, "risk": r_label, "val": v_label,
+            "sub": base_sub,
+            "w": w or {"trend": 0.0, "val": 0.0, "risk": 0.0},
+            "score_alt": score_alt,
+            "score_scope": scope or [],
+            "gate": {"level": gate.get("level", "ok"), "summary": gate.get("summary", "数据质量校验通过"),
+                     "flags": gate_flags, "block_add": gate_block_add},
+            "next_conditions": extra_reasons or [],
+            "position_note": "V4 P0 阶段未录入实际持仓：仓位提示按基准权重/上限给出；实际偏离触发的「再平衡评估」需持仓数据（P1）。",
+        }
+
+    # --- 闸门一：致命（行情滞后/多维度缺失）---
+    if fatal:
+        return _out("skip", ["数据质量闸门未通过，暂停当日判断"] + [f"{f['label']}：{f['detail']}" for f in gate_flags],
+                    extra_reasons=["恢复实时行情与核心指标后重新评估"])
+
+    # --- 闸门二：趋势与风险同时缺失（无维度可评）---
     if t is None and r is None:
-        return {"score": None, "quality": data_quality(trend, val, risk, official_count),
-                "suggestion": "暂不判断（数据不足）", "sug_color": "#94a3b8",
-                "reasons": ["趋势/风险数据均不足，暂不生成交易建议"],
-                "trend": t_label, "risk": r_label, "val": val.get("label"),
-                "sub": {"trend": None, "val": _score100(v), "risk": None},
-                "w": {"trend": 0.0, "val": 0.0, "risk": 0.0}, "score_alt": None}
-    # 权重：估值可用时 0.3/0.4/0.3；缺失时趋势/风险对半
+        return _out("skip", ["趋势/风险数据均不足，暂不生成交易建议"], scope=["val"] if v is not None else [])
+
+    # --- 评分：仅可用维度归一化（不用中性值掩盖缺失）---
+    # 三维子分数先映射为 0-100（_score100）再加权，避免 -1..1 直接相加后被钳制到 0/100
+    # 造成分数堆积（V3 遗留缺陷：趋势下降+估值高估+低风险会得 0 分而非 30 分）。
+    dims = []
+    if t is not None:
+        dims.append(("trend", _score100(t), 0.30))
     if v is not None:
-        w_t, w_v, w_r = 0.30, 0.40, 0.30
-        base = 100 * (w_t * (t if t is not None else 0.5) + w_v * v + w_r * (r if r is not None else 0.5))
-        # 敏感性：估值权重降至 30%，趋势/风险各 35%
-        base_alt = 100 * (0.35 * (t if t is not None else 0.5) + 0.30 * v + 0.35 * (r if r is not None else 0.5))
-    else:
-        w_t, w_v, w_r = 0.5, 0.0, 0.5
-        base = 100 * (w_t * (t if t is not None else 0.5) + w_r * (r if r is not None else 0.5))
-        base_alt = base   # 估值未参与时权重已对半，无敏感性
-    score = max(0, min(100, int(round(base))))   # 钳制到 0-100（看板口径）
-    score_alt = max(0, min(100, int(round(base_alt))))
+        dims.append(("val", _score100(v), 0.40))
+    if r is not None:
+        dims.append(("risk", _score100(r), 0.30))
+    wsum = sum(w for _, _, w in dims)
+    score = int(round(sum(s * w for _, s, w in dims) / wsum)) if wsum > 0 else None
+    w_used = {k: round(w / wsum, 2) for k, _, w in dims}
+    scope = [k for k, _, _ in dims]
+    # 敏感性：估值权重 40%→30%（趋势/风险各 35%），同样在可用维度内归一化
+    sens = {"trend": 0.35, "val": 0.30, "risk": 0.35}
+    walt_sum = sum(sens[k] for k in scope)
+    score_alt = int(round(sum(s * sens[k] for k, s, _ in dims) / walt_sum)) if walt_sum > 0 else None
+
     reasons = []
     reasons.append(trend.get("desc") or f"趋势{t_label}")
-    if v is not None:
-        reasons.append(val.get("desc"))
-    else:
-        reasons.append(val.get("desc"))  # 数据不足说明
+    reasons.append(val.get("desc"))
     reasons.append(risk.get("desc") or f"风险{r_label}")
+    next_conds = []
 
-    # 档位（趋势/风险优先压制买入；估值缺失时禁止直接加档——千问评审二轮D-07/D-09）
-    if r_label == "高风险" or t_label == "下降":
-        if r_label == "高风险":
-            suggestion, sug_color = "暂停新增仓位，优先控制风险", "#3b82f6"
-        else:
-            suggestion, sug_color = "观望或按既定计划小额定投", "#94a3b8"
-    elif score >= 70 and t_label in ("上升", "震荡") and v is not None and val.get("label") != "高估":
-        suggestion, sug_color = "允许分批建仓/定投加档", "#ef4444"
-    elif score >= 70 and v is None:
-        suggestion, sug_color = "观望或按既定计划小额定投（估值数据不足）", "#eab308"
-    elif score >= 55:
-        suggestion, sug_color = "持有为主，等待回踩企稳", "#f97316"
-    elif score >= 40:
-        suggestion, sug_color = "观望或按既定计划小额定投", "#eab308"
-    else:
-        if t_label == "上升":
-            suggestion, sug_color = "高估但趋势尚在：持有观察，反弹分批止盈", "#eab308"
-        else:
-            suggestion, sug_color = "暂停新增仓位，优先控制风险", "#3b82f6"
-    return {"score": score, "quality": data_quality(trend, val, risk, official_count),
-            "suggestion": suggestion, "sug_color": sug_color,
-            "reasons": reasons, "trend": t_label, "risk": r_label, "val": val.get("label"),
-            "sub": {"trend": _score100(t), "val": _score100(v), "risk": _score100(r)},
-            "w": {"trend": w_t, "val": w_v, "risk": w_r},
-            "score_alt": score_alt}
+    # --- 否决层：风险缺失 / 高风险 / 趋势缺失 / 趋势下降 → 暂停新增 ---
+    if r is None:
+        return _out("pause", reasons + ["风险维度缺失：未知风险不得当作低风险，禁止主动加仓"],
+                    score, score_alt, w_used, scope,
+                    ["等回撤/波动率指标恢复可用后再评估主动加仓"])
+    if t is None:
+        return _out("pause", reasons + ["趋势维度缺失：暂不生成主动加仓判断"],
+                    score, score_alt, w_used, scope,
+                    ["补齐 MA20/60/120 所需样本后重新评估"])
+    if r_label == "高风险":
+        return _out("pause", reasons + ["风险过高：优先控制风险，暂停新增仓位"],
+                    score, score_alt, w_used, scope,
+                    ["风险等级回落至中/低风险", "趋势重新转为上升或震荡企稳"])
+    if t_label == "下降":
+        return _out("pause", reasons + ["长期趋势向下：即使估值偏低也不主动加仓"],
+                    score, score_alt, w_used, scope,
+                    ["MA20/MA60/MA120 结构转多", "风险指标不高于中风险"])
+
+    # --- 主动加仓：高分 + 趋势在 + 估值非高估 + 闸门不加仓阻断 ---
+    if score is not None and score >= 70:
+        if v_label == "高估":
+            return _out("hold", reasons + ["估值高估：趋势尚在则持有观察、分批止盈，不追高"],
+                        score, score_alt, w_used, scope,
+                        ["估值分位回落至 70% 以下", "回踩企稳不破关键均线"])
+        if v is None:
+            return _out("hold", reasons + ["估值数据不足：评分升级受限，仅持有不主动加仓"],
+                        score, score_alt, w_used, scope,
+                        ["官方PE积累达到 200 条后启用估值维度"])
+        if gate_block_add:
+            return _out("pause", reasons + ["数据质量闸门阻断：虽评分较高，但数据不满足加仓条件"],
+                        score, score_alt, w_used, scope,
+                        ["闸门告警项全部消除（行情/风险/样本）"])
+        return _out("allow_add", reasons + ["三维共振：允许按 40/30/30 分批执行"],
+                    score, score_alt, w_used, scope,
+                    ["首批后回踩 MA20 站稳再执行第二笔", "突破近 20 日高点且有量能确认再执行第三笔"])
+
+    if score is not None and score >= 55:
+        if v_label == "高估":
+            return _out("hold", reasons + ["估值偏高：持有底仓，不新增主动仓位"],
+                        score, score_alt, w_used, scope,
+                        ["估值分位回落", "风险等级不上升"])
+        return _out("normal_dca", reasons + ["按长期定投纪律执行，不追高、不加速"],
+                    score, score_alt, w_used, scope,
+                    ["保持基准权重节奏", "出现回踩再考虑分批加仓"])
+
+    if score is not None and score >= 40:
+        return _out("hold", reasons + ["多空交织：持有观察，等待方向确认"],
+                    score, score_alt, w_used, scope,
+                    ["趋势转为上升", "估值分位进入低估区间"])
+
+    if t_label == "上升":
+        return _out("hold", reasons + ["估值偏高但趋势尚在：持有观察，反弹分批止盈"],
+                    score, score_alt, w_used, scope,
+                    ["不追高；跌破 MA20 且趋势转弱则减仓"])
+    return _out("pause", reasons + ["估值与趋势均不利：暂停新增，控制风险"],
+                score, score_alt, w_used, scope,
+                ["估值分位回落至 40% 以下", "趋势结构转多"])
 
 
-def batch_plan(trend: dict, risk: dict, val: dict) -> dict:
+
+def batch_plan(trend: dict, risk: dict, val: dict, gate: dict | None = None) -> dict:
     """
-    分批建仓纪律（参考执行计划）：
+    分批建仓纪律（参考执行计划，V4 增加数据质量闸门否决）：
       第一笔 40%：趋势条件成立（当前）；
       第二笔 30%：回踩 MA20 附近并重新站稳；
       第三笔 30%：突破近 20 日高点并有成交确认。
-    趋势下降或风险过高 → 暂停新增主动仓位；估值高估 → 暂缓新增。
+    数据质量闸门阻断 / 趋势下降 / 风险过高 / 风险数据不足 → 暂停新增主动仓位；估值高估 → 暂缓新增。
     """
     t_label = trend.get("label")
     r_label = risk.get("label")
     v_label = val.get("label")
+    gate = gate or {}
+    if gate.get("fatal") or gate.get("block_add"):
+        return {"status": "暂停", "color": "#3b82f6",
+                "text": "数据质量闸门未通过：暂停新增主动仓位，待数据可用性恢复"}
     if t_label == "下降" or r_label == "高风险":
         return {"status": "暂停", "color": "#3b82f6",
                 "text": "趋势下降或风险过高：暂停新增主动仓位，不机械补仓"}
+    if not risk.get("available", False):
+        return {"status": "暂停", "color": "#3b82f6",
+                "text": "风险数据不足（未知风险≠低风险）：暂停主动加仓，仅维持既定底仓"}
     if v_label == "高估":
         return {"status": "暂缓", "color": "#eab308",
                 "text": "估值高估：暂缓新增，等待估值回落或趋势确认"}
@@ -333,6 +573,35 @@ def batch_plan(trend: dict, risk: dict, val: dict) -> dict:
         {"phase": "第三笔", "ratio": "30%", "trigger": "突破近 20 日高点并有成交确认"},
     ]
     return {"status": "允许", "color": "#ef4444", "text": "允许分批建仓（参考执行计划）", "steps": steps}
+
+
+def portfolio_check(etf_configs: list, decisions: list) -> dict:
+    """
+    V4 组合配置体检（P0-4 一致性 + P1 集中度最小实现）：
+      - 基准权重合计是否等于 100；
+      - 单品种基准权重是否超过单品种上限；
+      - 红利家族等同类分组合计是否超过分组上限；
+      - 强周期品种是否超过研究建议上限（仅提示，不强制）。
+    说明：未录入实际持仓，故不做"实际仓位偏离"判定（需 P1 持仓管理）。
+    """
+    flags = []
+    base_sum = 0
+    singles = {}
+    for cfg in etf_configs:
+        code = cfg.get("code")
+        bw = float(cfg.get("base_w") or 0)
+        base_sum += bw
+        singles[code] = bw
+        if cfg.get("max_w") is not None and bw > float(cfg["max_w"]):
+            flags.append({"level": "warn", "label": f"{cfg.get('name', code)} 基准{bw}% 超上限{cfg['max_w']}%"})
+        cap = cfg.get("research_cap_w")
+        if cap is not None and bw > float(cap):
+            flags.append({"level": "info",
+                          "label": f"{cfg.get('name', code)} 基准{bw}% 高于稳健研究建议上限{cap}%（强周期，非强制）"})
+    if abs(base_sum - 100) > 0.01:
+        flags.append({"level": "warn", "label": f"基准权重合计 {base_sum:.0f}% ≠ 100%"})
+    return {"base_sum": round(base_sum, 2), "ok": abs(base_sum - 100) < 0.01, "flags": flags,
+            "note": "未录入实际持仓：集中度按基准权重静态校验，实际仓位偏离需持仓数据（P1）。"}
 
 
 def atr_ref(close: float | None, atr: float | None) -> dict:
