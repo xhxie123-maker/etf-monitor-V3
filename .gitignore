@@ -1,0 +1,7 @@
+# 个人持仓与投资记录（本地隔离，严禁提交到公开仓库）
+private/
+
+# Python 缓存
+__pycache__/
+*.pyc
+*.pyo

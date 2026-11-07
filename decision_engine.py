@@ -575,14 +575,15 @@ def batch_plan(trend: dict, risk: dict, val: dict, gate: dict | None = None) -> 
     return {"status": "允许", "color": "#ef4444", "text": "允许分批建仓（参考执行计划）", "steps": steps}
 
 
-def portfolio_check(etf_configs: list, decisions: list) -> dict:
+def portfolio_check(etf_configs: list, decisions: list, actual_w: dict | None = None,
+                    deviation_pp: float = 10.0) -> dict:
     """
-    V4 组合配置体检（P0-4 一致性 + P1 集中度最小实现）：
+    V4 组合配置体检（P0-4 一致性 + P1 集中度 + 实际持仓偏离）：
       - 基准权重合计是否等于 100；
       - 单品种基准权重是否超过单品种上限；
       - 红利家族等同类分组合计是否超过分组上限；
-      - 强周期品种是否超过研究建议上限（仅提示，不强制）。
-    说明：未录入实际持仓，故不做"实际仓位偏离"判定（需 P1 持仓管理）。
+      - 强周期品种是否超过研究建议上限（仅提示，不强制）；
+      - actual_w（实际持仓小数，可选）：实际权重相对基准的绝对百分点偏离，超 deviation_pp 标记。
     """
     flags = []
     base_sum = 0
@@ -600,8 +601,158 @@ def portfolio_check(etf_configs: list, decisions: list) -> dict:
                           "label": f"{cfg.get('name', code)} 基准{bw}% 高于稳健研究建议上限{cap}%（强周期，非强制）"})
     if abs(base_sum - 100) > 0.01:
         flags.append({"level": "warn", "label": f"基准权重合计 {base_sum:.0f}% ≠ 100%"})
+
+    deviations = []
+    if actual_w:
+        for cfg in etf_configs:
+            code = cfg.get("code")
+            tgt = float(cfg.get("base_w") or 0) / 100.0
+            act = float(actual_w.get(code, 0.0))
+            dev_pp = (act - tgt) * 100.0
+            if abs(dev_pp) >= deviation_pp:
+                flags.append({"level": "warn",
+                              "label": f"{cfg.get('name', code)} 实际{act*100:.0f}% 偏离基准{tgt*100:.0f}% 达 {dev_pp:+.0f}pp"})
+            if act*100 > float(cfg.get("max_w") or 100):
+                flags.append({"level": "warn",
+                              "label": f"{cfg.get('name', code)} 实际{act*100:.0f}% 超上限{cfg.get('max_w')}%"})
+            deviations.append({"code": code, "target_pct": round(tgt*100, 2),
+                               "actual_pct": round(act*100, 2), "dev_pp": round(dev_pp, 2)})
+
     return {"base_sum": round(base_sum, 2), "ok": abs(base_sum - 100) < 0.01, "flags": flags,
-            "note": "未录入实际持仓：集中度按基准权重静态校验，实际仓位偏离需持仓数据（P1）。"}
+            "deviations": deviations,
+            "has_actual_holdings": bool(actual_w),
+            "note": ("已按实际持仓计算偏离。" if actual_w else
+                     "未录入实际持仓：集中度按基准权重静态校验，实际仓位偏离需持仓数据。")}
+
+
+def market_regime(macro: dict | None, broad_trend_label: str | None = None) -> dict:
+    """
+    五步决策第二步：市场环境判断（利率/流动性/趋势/宏观）。
+    macro: {available:int, items:[{label,status(ok/stale/fail),...}]}；
+    broad_trend_label: 核心宽基（如沪深300）趋势标签。
+    返回 regime: supportive（支持加仓）/ neutral / cautious（谨慎）/ unknown。
+    规则：不凭单一宏观指标下结论；宽基趋势下降或宏观多数失效 → 谨慎/未知。
+    """
+    items = (macro or {}).get("items") or []
+    ok_n = sum(1 for it in items if it.get("status") == "ok")
+    fail_n = sum(1 for it in items if it.get("status") == "fail")
+    total = len(items)
+    if broad_trend_label == "下降":
+        return {"regime": "cautious", "label": "谨慎（宽基趋势向下）",
+                "basis": "核心宽基趋势下降，主动加仓受限", "macro_ok": ok_n, "macro_total": total}
+    if total and fail_n / total > 0.5:
+        return {"regime": "unknown", "label": "环境未知（宏观多数失效）",
+                "basis": "宏观指标过半获取失败，不据此生成信号", "macro_ok": ok_n, "macro_total": total}
+    if broad_trend_label == "上升" and ok_n >= max(1, total // 2):
+        return {"regime": "supportive", "label": "环境支持（趋势向上、宏观可用）",
+                "basis": "宽基趋势向上且宏观指标可用", "macro_ok": ok_n, "macro_total": total}
+    return {"regime": "neutral", "label": "中性",
+            "basis": "宏观与趋势无明显利空，按既定纪律执行", "macro_ok": ok_n, "macro_total": total}
+
+
+def rebalance_plan(target_w: dict, actual_w: dict | None, run_date: str,
+                   calendar_months: list, deviation_pp: float,
+                   portfolio_dd_pct: float | None = None,
+                   dd_warn_pct: float | None = None, dd_hard_pct: float | None = None,
+                   has_cash_inflow: bool = False, fee_rate: float = 0.001,
+                   concentration_flag: bool = False) -> dict:
+    """
+    再平衡评估（GPT P1-4）：四种触发任一满足即评估，结合成本与风险预算决定是否执行。
+      1. calendar：运行月 ∈ calendar_months；
+      2. deviation：任一实际权重相对基准绝对偏离 ≥ deviation_pp；
+      3. cashflow：有新增资金（可借资金流入低冲击再平衡）；
+      4. risk_budget：组合回撤触及 warn/hard，或集中度超限。
+    target_w/actual_w: code -> 小数。
+    返回 triggers、should_execute、目标/实际/Δpp、单边换手与预估成本（%）。
+    """
+    triggers = []
+    try:
+        month = pd.to_datetime(run_date).month
+        if month in [int(m) for m in calendar_months]:
+            triggers.append({"type": "calendar", "label": f"日历再平衡（{month}月）"})
+    except Exception:
+        pass
+
+    deviations = []
+    dev_hit = False
+    if actual_w:
+        for code, tgt in target_w.items():
+            act = float(actual_w.get(code, 0.0))
+            d_pp = (act - float(tgt)) * 100.0
+            deviations.append({"code": code, "target_pct": round(float(tgt)*100, 2),
+                               "actual_pct": round(act*100, 2), "delta_pp": round(d_pp, 2)})
+            if abs(d_pp) >= deviation_pp:
+                dev_hit = True
+    if dev_hit:
+        triggers.append({"type": "deviation",
+                         "label": f"仓位偏离达 ±{deviation_pp:g}pp（绝对百分点）"})
+
+    if has_cash_inflow:
+        triggers.append({"type": "cashflow", "label": "资金流入再平衡（新增资金优先补低配）"})
+
+    rb_hit = False
+    if portfolio_dd_pct is not None and dd_warn_pct is not None:
+        if portfolio_dd_pct <= dd_warn_pct:
+            rb_hit = True
+    if concentration_flag:
+        rb_hit = True
+    if rb_hit:
+        triggers.append({"type": "risk_budget", "label": "风险预算/集中度触发，优先降风险"})
+
+    # 单边换手 = 0.5*Σ|Δw|（小数）；成本 = 换手 × fee
+    turnover = 0.0
+    if deviations:
+        turnover = sum(abs(d["delta_pp"]) for d in deviations) / 100.0 / 2.0
+    est_cost_pct = round(turnover * fee_rate * 100, 4)
+
+    return {
+        "triggers": triggers, "should_evaluate": bool(triggers),
+        "should_execute": bool(dev_hit or rb_hit),
+        "execution_note": ("偏离或风险预算触发：建议执行，向基准权重收敛并优先降风险"
+                           if (dev_hit or rb_hit) else
+                           ("仅日历/资金流入：评估成本后决定，无明显偏离可不交易"
+                            if triggers else "无再平衡触发，维持现状")),
+        "deviations": deviations,
+        "one_way_turnover_pct": round(turnover * 100, 3),
+        "est_cost_pct": est_cost_pct,
+        "deviation_mode": "absolute_pp",
+    }
+
+
+def discipline_layers(gate: dict, regime: dict, rebalance: dict) -> dict:
+    """
+    三层纪律（GPT P1-4）显式状态：
+      layer1 长期定投：fatal 时暂停，否则维持战略定投；
+      layer2 风险控制：闸门 block_add / 环境谨慎时限制主动加仓；
+      layer3 估值再平衡：透传再平衡计划。
+    """
+    gate = gate or {}
+    regime = regime or {}
+    layer1 = {
+        "name": "第一层 · 长期定投纪律",
+        "status": "暂停" if gate.get("fatal") else "维持",
+        "desc": "致命闸门未过，暂停当日定投" if gate.get("fatal")
+                else "按战略目标持续定投，不因短期波动随意停止",
+    }
+    restrictions = []
+    if gate.get("block_add"):
+        restrictions.append("数据质量闸门阻断主动加仓")
+    if regime.get("regime") in ("cautious", "unknown"):
+        restrictions.append(regime.get("label", "市场环境不支持主动加仓"))
+    layer2 = {
+        "name": "第二层 · 风险控制纪律",
+        "status": "限制加仓" if restrictions else "正常",
+        "desc": "；".join(restrictions) if restrictions
+                else "趋势/回撤/集中度未触限，可按纪律加仓",
+    }
+    layer3 = {
+        "name": "第三层 · 估值与再平衡纪律",
+        "status": "触发" if rebalance.get("should_evaluate") else "无触发",
+        "desc": rebalance.get("execution_note", "维持现状"),
+        "triggers": [t["type"] for t in rebalance.get("triggers", [])],
+    }
+    return {"layers": [layer1, layer2, layer3],
+            "summary": " / ".join([layer1["status"], layer2["status"], layer3["status"]])}
 
 
 def atr_ref(close: float | None, atr: float | None) -> dict:

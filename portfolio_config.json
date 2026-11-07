@@ -1,105 +1,141 @@
 {
-  "version": "V4.0",
-  "strategy_version": "v4-p0-2026-11-06",
-  "updated": "2026-11-06",
-  "description": "V4 中央配置（唯一来源）：ETF 池、基准权重与仓位上下限、资产类别、组合集中度、调仓阈值、决策引擎阈值、回测成本参数、数据质量阈值。etf_monitor.py / decision_engine.py / backtest.py 均从本文件读取，避免页面、文档、回测三套规则不一致。",
+  "version": "V4.1",
+  "strategy_version": "v4-full-2026-11-07",
+  "updated": "2026-11-07",
+  "description": "V4 中央配置（唯一来源）：四类资产池（核心权益/防御性/分散化/风格行业卫星）、基准权重与仓位上下限、组合集中度、风险预算、压力情景、三层纪律、决策引擎阈值、回测成本、数据质量阈值。etf_monitor.py / decision_engine.py / backtest.py / etf_quality.py / portfolio_risk.py / strategy_research.py 均从本文件读取。",
+  "asset_class_legend": {
+    "core_equity": "核心权益：宽基指数 ETF，承担长期权益增长",
+    "defensive": "防御性：国债/货币 ETF，降低组合波动、提供流动性",
+    "diversifier": "分散化：黄金等与权益风险来源不同的资产",
+    "style_satellite": "风格行业卫星：红利/银行/煤炭/现金流等，受风险预算约束"
+  },
   "etfs": [
     {
-      "code": "515180",
-      "name": "红利ETF",
-      "index_code": "000922",
-      "index_name": "中证红利",
-      "asset_class": "style_satellite",
-      "role": "高股息压舱石",
-      "color": "#e6b31e",
-      "base_w": 25,
-      "max_w": 40,
-      "min_w": 12,
-      "cyclic": false
+      "code": "510300", "name": "沪深300ETF", "index_code": "000300", "index_name": "沪深300",
+      "asset_class": "core_equity", "role": "核心宽基（长期权益增长）", "color": "#2563eb",
+      "base_w": 20, "max_w": 35, "min_w": 10, "cyclic": false,
+      "expense_ratio": 0.6, "expense_note": "管理0.5%+托管0.1%（静态，以基金公告为准，2026-11-07）",
+      "note": "2012-05上市，历史最长的宽基ETF之一；估值用中证官网000300官方PE；作为核心权益底仓"
     },
     {
-      "code": "516310",
-      "name": "银行ETF",
-      "index_code": "399986",
-      "index_name": "中证银行",
-      "asset_class": "style_satellite",
-      "role": "低估值稳息品种",
-      "color": "#3b82f6",
-      "base_w": 20,
-      "max_w": 30,
-      "min_w": 8,
-      "cyclic": false
+      "code": "512050", "name": "中证A500ETF", "index_code": "932000", "index_name": "中证A500",
+      "asset_class": "core_equity", "role": "新一代核心宽基（行业更均衡）", "color": "#0891b2",
+      "base_w": 10, "max_w": 25, "min_w": 5, "cyclic": false,
+      "expense_ratio": null, "expense_note": "费率以基金公告为准，可在本字段手动维护",
+      "note": "2024-11上市，指数2024-09发布；PE历史短，估值可信度随样本积累提升"
     },
     {
-      "code": "515220",
-      "name": "煤炭ETF",
-      "index_code": "000820",
-      "index_name": "中证煤炭",
-      "asset_class": "style_satellite",
-      "role": "强周期高波动品种",
-      "color": "#f97316",
-      "base_w": 20,
-      "max_w": 30,
-      "min_w": 8,
-      "cyclic": true,
+      "code": "511010", "name": "国债ETF", "index_code": "000091", "index_name": "上证5年期国债",
+      "asset_class": "defensive", "role": "利率债防御（降波动）", "color": "#16a34a",
+      "base_w": 15, "max_w": 30, "min_w": 5, "cyclic": false,
+      "expense_ratio": null, "expense_note": "费率以基金公告为准，可在本字段手动维护",
+      "note": "2013-04上市；跟踪利率债，价格随利率反向波动，非股票、无PE；压力测试按久期假设"
+    },
+    {
+      "code": "511880", "name": "货币ETF", "index_code": null, "index_name": null,
+      "asset_class": "defensive", "role": "现金管理（流动性）", "color": "#65a30d",
+      "base_w": 5, "max_w": 20, "min_w": 0, "cyclic": false,
+      "expense_ratio": null, "expense_note": "货币基金口径，无申赎费，收益为七日年化",
+      "note": "2013-04上市；T+0现金管理工具，净值稳定在100附近，承担流动性蓄水池"
+    },
+    {
+      "code": "518880", "name": "黄金ETF", "index_code": null, "index_name": "上海金Au99.99",
+      "asset_class": "diversifier", "role": "黄金分散（风险来源不同）", "color": "#d97706",
+      "base_w": 5, "max_w": 15, "min_w": 2, "cyclic": false,
+      "expense_ratio": 0.6, "expense_note": "管理0.5%+托管0.1%（静态，以基金公告为准，2026-11-07）",
+      "note": "2013-07上市；跟踪实物黄金，无PE/盈利，与权益相关性低，用于分散与抗通胀"
+    },
+    {
+      "code": "515180", "name": "红利ETF", "index_code": "000922", "index_name": "中证红利",
+      "asset_class": "style_satellite", "role": "高股息卫星（风格增强）", "color": "#e6b31e",
+      "base_w": 15, "max_w": 25, "min_w": 8, "cyclic": false,
+      "expense_ratio": 0.6, "expense_note": "管理0.5%+托管0.1%（静态，以基金公告为准，2026-11-07）",
+      "note": "红利不等于固收：本质仍是权益资产，随股票市场波动；V4回测显示简单MA趋势策略长期跑输持有"
+    },
+    {
+      "code": "516310", "name": "银行ETF", "index_code": "399986", "index_name": "中证银行",
+      "asset_class": "style_satellite", "role": "低估值金融卫星", "color": "#3b82f6",
+      "base_w": 8, "max_w": 20, "min_w": 3, "cyclic": false,
+      "expense_ratio": null, "expense_note": "费率以基金公告为准，可在本字段手动维护",
+      "note": "银行不等于债券：是权益资产，受信用周期与资产质量影响，无债券的票息与本金属性"
+    },
+    {
+      "code": "515220", "name": "煤炭ETF", "index_code": "000820", "index_name": "中证煤炭",
+      "asset_class": "style_satellite", "role": "强周期卫星（风险预算硬约束）", "color": "#f97316",
+      "base_w": 5, "max_w": 10, "min_w": 0, "cyclic": true,
       "research_cap_w": 10,
-      "note": "强周期行业：盈利下行期 PE 被动抬升，高分位≠高估，需结合煤价位置/盈利与股息率判断；参考做T与仓位纪律而非单纯PE分位。V4 风险预算研究建议：稳健策略下煤炭单品种研究上限约 10%（GPT评审P1-1），当前仍按既有 max_w 执行，是否收紧由使用者按自身风险承受能力决定。"
+      "expense_ratio": null, "expense_note": "费率以基金公告为准，可在本字段手动维护",
+      "note": "煤炭不是稳健底仓：强周期高波动，盈利下行期PE被动抬升。V4按GPT建议将基准下调至5%、上限10%（5%-10%研究区间），不得因PE低/股息高突破风险预算"
     },
     {
-      "code": "159201",
-      "name": "自由现金流ETF",
-      "index_code": "980092",
-      "index_name": "国证自由现金流",
-      "asset_class": "style_satellite",
-      "role": "现金流质量成长品种",
-      "color": "#14b8a6",
-      "base_w": 15,
-      "max_w": 25,
-      "min_w": 8,
-      "cyclic": false,
-      "note": "2025-02上市、历史<3年：官方PE已接入（iFinD全历史播种2016-01起+腾讯日频增量，国证980092指数口径，PE-TTM），估值参与决策评分；另保留十大权重加权参考估值(腾讯)与IOPV溢价率作观测（非官方指数估值、仅参考）；以价格/趋势/技术面与组合相关性为主要追踪维度"
+      "code": "159201", "name": "自由现金流ETF", "index_code": "980092", "index_name": "国证自由现金流",
+      "asset_class": "style_satellite", "role": "现金流质量卫星", "color": "#14b8a6",
+      "base_w": 7, "max_w": 15, "min_w": 3, "cyclic": false,
+      "expense_ratio": null, "expense_note": "费率以基金公告为准，可在本字段手动维护",
+      "note": "2025-02上市；ETF真实交易史、国证980092指数史、规则回测史三者严格区分；官方PE已接入"
     },
     {
-      "code": "563020",
-      "name": "红利低波ETF",
-      "index_code": "H30269",
-      "index_name": "中证红利低波动",
-      "asset_class": "style_satellite",
-      "role": "低波红利压舱石",
-      "color": "#a78bfa",
-      "base_w": 20,
-      "max_w": 30,
-      "min_w": 10,
-      "cyclic": false,
-      "note": "2023-12上市（约3年）；指数基日2005-12-30、官方PE全历史可用（中证官网indexCsiDsPe，2013-12起），估值分位完整；以低波动+高股息为特征，年化波动率与相对红利超额（vs红利ETF 515180）为专属观察维度"
+      "code": "563020", "name": "红利低波ETF", "index_code": "H30269", "index_name": "中证红利低波动",
+      "asset_class": "style_satellite", "role": "低波红利卫星", "color": "#a78bfa",
+      "base_w": 10, "max_w": 20, "min_w": 5, "cyclic": false,
+      "expense_ratio": null, "expense_note": "费率以基金公告为准，可在本字段手动维护",
+      "note": "2023-12上市；低波仍属权益，非固收；官方PE全历史可用，与红利ETF成分重合需穿透检查"
     }
   ],
   "portfolio": {
     "concentration": {
-      "single_etf_max_w": 40,
-      "family_group_max_w": {
-        "红利家族": 45
-      },
-      "family_groups": {
-        "红利家族": ["515180", "563020"]
-      },
+      "single_etf_max_w": 35,
+      "family_group_max_w": {"红利家族": 30},
+      "family_groups": {"红利家族": ["515180", "563020"]},
+      "asset_class_max_w": {"core_equity": 60, "defensive": 45, "diversifier": 15, "style_satellite": 50},
       "cyclic_single_research_cap_w": 10
     },
     "rebalance": {
+      "modes": ["calendar", "deviation", "cashflow", "risk_budget"],
       "calendar": "semiannual",
       "calendar_months": [6, 12],
       "deviation_pp": 10,
       "deviation_mode": "absolute_pp",
-      "note": "±10 为绝对百分点偏离（目标20%、实际30%即偏离+10pp）；相对偏离口径未启用"
+      "cashflow_inflow_threshold_pct": 5,
+      "risk_budget_breach_trigger": true,
+      "note": "±10 为绝对百分点（目标20%、实际30%即+10pp）；四种再平衡触发任一满足即评估，结合交易成本与风险预算决定是否执行"
     },
     "dca": {
       "double_below_pct": 20,
       "normal_below_pct": 40,
-      "half_below_pct": 70
+      "half_below_pct": 70,
+      "three_layer": {
+        "layer1_long_term": "按战略目标持续定投，不因短期波动随意停止",
+        "layer2_risk_control": "趋势恶化/组合回撤超预算/集中度超标时限制主动加仓",
+        "layer3_valuation_rebalance": "资产偏离且估值趋势满足时，结合新增资金、成本、风险预算再平衡"
+      }
     },
     "risk_budget": {
-      "max_portfolio_dd_warn_pct": -20
-    }
+      "portfolio_vol_target_ann_pct": 15,
+      "max_portfolio_dd_warn_pct": -15,
+      "max_portfolio_dd_hard_pct": -25,
+      "single_asset_risk_contribution_cap_pct": 40
+    },
+    "stress_scenarios": [
+      {"code": "equity_crash", "name": "权益市场大跌",
+       "shocks": {"core_equity": -30, "style_satellite": -25, "diversifier": -5, "defensive": 2},
+       "assumption": "权益类同步下跌，避险资产小幅正收益（研究假设，非预测）"},
+      {"code": "rate_shock", "name": "利率上行100bp",
+       "shocks": {"defensive": -5, "style_satellite": -10, "core_equity": -12, "diversifier": 3},
+       "assumption": "久期约4-5年的债券回撤约5%，高股息权益重定价"},
+      {"code": "coal_down", "name": "煤炭周期下行",
+       "shocks": {"515220": -40},
+       "assumption": "煤价与盈利下行，仅冲击煤炭品种"},
+      {"code": "dividend_reversal", "name": "红利风格逆转",
+       "shocks": {"515180": -20, "563020": -20, "516310": -15, "core_equity": -5},
+       "assumption": "红利/低波持续跑输宽基，风格因子回撤"},
+      {"code": "liquidity_shock", "name": "流动性冲击",
+       "shocks": {"core_equity": -8, "style_satellite": -12, "defensive": -1, "diversifier": -4},
+       "assumption": "折溢价扩大、价差上升，流动性折价"},
+      {"code": "multi_asset_selloff", "name": "多资产同时下跌",
+       "shocks": {"core_equity": -20, "style_satellite": -20, "defensive": -6, "diversifier": -12},
+       "assumption": "相关性趋近1，分散失效"}
+    ]
   },
   "engine": {
     "pe_min_official": 200,
@@ -107,18 +143,26 @@
     "pe_high_pct": 70,
     "weights": {"trend": 0.3, "val": 0.4, "risk": 0.3},
     "weights_sensitivity": {"trend": 0.35, "val": 0.3, "risk": 0.35},
-    "state_policy": "数据质量闸门与前序风险闸门具有否决权：行情滞后 / 风险数据缺失 / 数据源异常时，禁止输出主动加仓信号。"
+    "five_steps": ["数据质量闸门", "市场环境判断", "ETF质量与投资价值", "组合风险管理", "生成最终决策"],
+    "state_policy": "前序闸门与风险警告具有否决权，后续高分不能推翻；综合评分仅作辅助排序，不代表上涨概率"
   },
   "backtest": {
     "fee": 0.001,
     "slippage": 0.001,
     "fill": "next_close",
-    "fee_note": "单边比例；买卖双向均按成交金额扣除 fee+slippage；成交假设为信号次日收盘价（仅 close 数据时可执行的最保守假设）"
+    "benchmarks": ["buy_hold", "fixed_dca", "periodic_rebalance", "pe_dca", "trend_filter", "v4_combined"],
+    "fee_note": "单边比例；买卖双向按成交金额扣除 fee+slippage；信号次日收盘价成交；价格回报口径，分红总回报需配合复权数据"
   },
   "data_quality": {
     "price_stale_days": 3,
+    "price_stale_hard_days": 7,
     "pe_stale_days": 10,
     "min_price_rows": 130,
-    "note": "行情最新交易日距运行日超过 price_stale_days 个自然日视为滞后；PE 口径最新观测超过 pe_stale_days 个自然日视为口径陈旧"
+    "note": "行情滞后3天告警、超7天阻断；PE陈旧10天；核心维度缺失按闸门规则处理"
+  },
+  "privacy": {
+    "holdings_isolation": true,
+    "local_only_files": ["holdings_local.json", "journal_local.json"],
+    "note": "个人持仓与交易记录仅存本地，默认不进入公开仓库（.gitignore 拦截）"
   }
 }
