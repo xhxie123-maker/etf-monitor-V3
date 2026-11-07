@@ -156,6 +156,8 @@ def build_snapshot(v5: dict, config: dict | None = None) -> dict:
         "order_plan_reason": None if (v5.get("plan") or {}).get("ok") else (v5.get("plan") or {}).get("reason"),
         "configured": (v5.get("unlock") or {}).get("configured"),
         "unlock_need": (v5.get("unlock") or {}).get("need"),
+        "hypothetical_nav": v5.get("hypothetical_nav") or [],
+        "hypothetical_nav_note": "用风险预算权重（含现金）回放近 260 日的假设净值，非实盘，仅用于图表与风险展示",
         "strategies": v5.get("strategies"),
         "note": "strategies 为策略中心页所需的扩展字段（A/B/C/D 四策略最新的判定与排名）",
     }

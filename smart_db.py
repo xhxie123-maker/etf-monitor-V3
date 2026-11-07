@@ -172,13 +172,13 @@ DDL = [
         review_status TEXT DEFAULT 'pending', review_note TEXT,
         created_at TEXT, expired_at TEXT
     )""",
-    # 17 组合每日净值
+    # 17 组合每日净值（quality_flag 区分实盘 actual 与假设组合 hypothetical）
     """CREATE TABLE IF NOT EXISTS portfolio_daily (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         portfolio_id TEXT NOT NULL, trade_date TEXT NOT NULL,
         total_assets_cents INTEGER, cash_cents INTEGER, market_value_cents INTEGER,
         daily_return_pct REAL, cumulative_return_pct REAL, drawdown_pct REAL,
-        annualized_volatility_pct REAL,
+        annualized_volatility_pct REAL, quality_flag TEXT DEFAULT 'actual',
         UNIQUE(portfolio_id, trade_date)
     )""",
     # 18 回测记录
@@ -236,6 +236,10 @@ def init_db(path: str) -> sqlite3.Connection:
         conn.execute(ddl)
     for idx in INDEX_DDL:
         conn.execute(idx)
+    # 轻量迁移：旧库 portfolio_daily 缺少 quality_flag 时补列
+    cols = [r[1] for r in conn.execute("PRAGMA table_info(portfolio_daily)").fetchall()]
+    if "quality_flag" not in cols:
+        conn.execute("ALTER TABLE portfolio_daily ADD COLUMN quality_flag TEXT DEFAULT 'actual'")
     conn.commit()
     return conn
 
@@ -472,11 +476,145 @@ def log_ingestion(conn, source_id, data_type, requested=0, success=0, failed=0,
     return 1
 
 
+# ------------------------------------------------------------------ 新增写入
+def sync_strategy_definitions(conn, defs: list) -> int:
+    """表10：策略定义（A/B/C/D 等），按 strategy_id 幂等。"""
+    n = 0
+    for d in defs:
+        conn.execute(
+            """INSERT INTO strategy_definition (strategy_id,strategy_name,strategy_type,
+               description,active_version,enabled)
+               VALUES (?,?,?,?,?,?)
+               ON CONFLICT(strategy_id) DO UPDATE SET strategy_name=excluded.strategy_name,
+               strategy_type=excluded.strategy_type, description=excluded.description,
+               active_version=excluded.active_version, enabled=excluded.enabled""",
+            (d["strategy_id"], d.get("strategy_name"), d.get("strategy_type"),
+             d.get("description"), d.get("active_version"),
+             1 if d.get("enabled", True) else 0))
+        n += 1
+    return n
+
+
+def sync_strategy_versions(conn, versions: list) -> int:
+    """表11：策略版本（参数 JSON + 参数哈希 + 训练/验证区间）。"""
+    n = 0
+    for v in versions:
+        conn.execute(
+            """INSERT INTO strategy_version (version_id,strategy_id,parameters_json,
+               parameter_hash,training_start,training_end,validation_start,
+               validation_end,created_at,approval_status)
+               VALUES (?,?,?,?,?,?,?,?,?,?)
+               ON CONFLICT(version_id) DO UPDATE SET parameters_json=excluded.parameters_json,
+               parameter_hash=excluded.parameter_hash, approval_status=excluded.approval_status""",
+            (v["version_id"], v["strategy_id"], v.get("parameters_json"),
+             v.get("parameter_hash"), v.get("training_start"), v.get("training_end"),
+             v.get("validation_start"), v.get("validation_end"),
+             v.get("created_at") or _now(), v.get("approval_status", "approved")))
+        n += 1
+    return n
+
+
+def sync_trading_calendar(conn, market: str, open_dates, start=None, end=None) -> int:
+    """表7：交易日历。open_dates 为实际有行情的日期集合；区间内周末/无行情日标 is_open=0。"""
+    open_set = set(_iso(d) for d in open_dates)
+    if not open_set:
+        return 0
+    d0 = pd.to_datetime(start) if start else pd.to_datetime(min(open_set))
+    d1 = pd.to_datetime(end) if end else pd.to_datetime(max(open_set))
+    days = pd.date_range(d0, d1, freq="D")
+    n = 0
+    for day in days:
+        s = day.strftime("%Y-%m-%d")
+        is_open = 1 if (s in open_set and day.weekday() < 5) else 0
+        conn.execute(
+            """INSERT INTO trading_calendar (market,trade_date,is_open,open_time,close_time,
+               session_type,source_id) VALUES (?,?,?,?,?,?,?)
+               ON CONFLICT(market,trade_date) DO UPDATE SET is_open=excluded.is_open""",
+            (market, s, is_open, "09:30" if is_open else None,
+             "15:00" if is_open else None, "full" if is_open else "closed",
+             "derived_from_etf_daily_bar"))
+        n += 1
+    return n
+
+
+def sync_profile_snapshot(conn, snap: dict) -> int:
+    """表3：ETF 定期基本面快照（只写实际可得字段，缺失留空，不估算）。"""
+    conn.execute(
+        """INSERT INTO etf_profile_snapshot (etf_code,report_date,nav,total_assets_cents,
+           fund_shares,tracking_error,expense_ratio,benchmark,source_date,published_at)
+           VALUES (?,?,?,?,?,?,?,?,?,?)
+           ON CONFLICT(etf_code,report_date) DO UPDATE SET expense_ratio=excluded.expense_ratio,
+           tracking_error=excluded.tracking_error, benchmark=excluded.benchmark""",
+        (snap["etf_code"], _iso(snap["report_date"]), _f(snap.get("nav")),
+         _cents(snap.get("total_assets")), _f(snap.get("fund_shares")),
+         _f(snap.get("tracking_error")), _f(snap.get("expense_ratio")),
+         snap.get("benchmark"), _iso(snap.get("source_date")) if snap.get("source_date") else None,
+         snap.get("published_at")))
+    return 1
+
+
+def sync_portfolio(conn, p: dict) -> int:
+    """表13：组合信息（资金未确认时金额字段允许为 NULL）。"""
+    conn.execute(
+        """INSERT INTO portfolio (portfolio_id,portfolio_name,initial_capital_cents,
+           current_cash_cents,currency,benchmark_id,risk_profile,
+           max_drawdown_limit_pct,created_at,updated_at)
+           VALUES (?,?,?,?,?,?,?,?,?,?)
+           ON CONFLICT(portfolio_id) DO UPDATE SET risk_profile=excluded.risk_profile,
+           max_drawdown_limit_pct=excluded.max_drawdown_limit_pct, updated_at=excluded.updated_at""",
+        (p["portfolio_id"], p.get("portfolio_name"), _cents(p.get("initial_capital")),
+         _cents(p.get("current_cash")), p.get("currency", "CNY"), p.get("benchmark_id"),
+         p.get("risk_profile"), _f(p.get("max_drawdown_limit_pct")),
+         p.get("created_at") or _now(), _now()))
+    return 1
+
+
+def sync_portfolio_daily(conn, rows: list) -> int:
+    """表17：每日组合净值（actual 实盘 / hypothetical 假设权重回放）。"""
+    n = 0
+    for r in rows:
+        conn.execute(
+            """INSERT INTO portfolio_daily (portfolio_id,trade_date,total_assets_cents,
+               cash_cents,market_value_cents,daily_return_pct,cumulative_return_pct,
+               drawdown_pct,annualized_volatility_pct,quality_flag)
+               VALUES (?,?,?,?,?,?,?,?,?,?)
+               ON CONFLICT(portfolio_id,trade_date) DO UPDATE SET
+               daily_return_pct=excluded.daily_return_pct,
+               cumulative_return_pct=excluded.cumulative_return_pct,
+               drawdown_pct=excluded.drawdown_pct, quality_flag=excluded.quality_flag""",
+            (r["portfolio_id"], _iso(r["trade_date"]), _cents(r.get("total_assets")),
+             _cents(r.get("cash")), _cents(r.get("market_value")),
+             _f(r.get("daily_return_pct")), _f(r.get("cumulative_return_pct")),
+             _f(r.get("drawdown_pct")), _f(r.get("annualized_volatility_pct")),
+             r.get("quality_flag", "hypothetical")))
+        n += 1
+    return n
+
+
+def sync_position(conn, r: dict) -> int:
+    """表14：持仓（仅在用户实际提供持仓时写入）。"""
+    conn.execute(
+        """INSERT INTO portfolio_position (portfolio_id,etf_code,quantity,average_cost_cents,
+           market_value_cents,current_weight_pct,target_weight_pct,updated_at)
+           VALUES (?,?,?,?,?,?,?,?)
+           ON CONFLICT(portfolio_id,etf_code) DO UPDATE SET quantity=excluded.quantity,
+           average_cost_cents=excluded.average_cost_cents,
+           market_value_cents=excluded.market_value_cents,
+           current_weight_pct=excluded.current_weight_pct,
+           target_weight_pct=excluded.target_weight_pct, updated_at=excluded.updated_at""",
+        (r["portfolio_id"], r["etf_code"], r.get("quantity"),
+         _cents(r.get("average_cost")), _cents(r.get("market_value")),
+         _f(r.get("current_weight_pct")), _f(r.get("target_weight_pct")), _now()))
+    return 1
+
+
 def counts(conn) -> dict:
     out = {}
-    for t in ("etf_basic", "etf_daily_bar", "etf_valuation", "instrument_rule",
-              "indicator_daily", "etf_signal", "market_regime", "risk_snapshot",
-              "recommendation", "backtest_run", "data_ingestion_log"):
+    for t in ("etf_basic", "etf_daily_bar", "etf_profile_snapshot", "etf_valuation",
+              "etf_flow", "instrument_rule", "trading_calendar", "indicator_daily",
+              "market_regime", "strategy_definition", "strategy_version", "etf_signal",
+              "portfolio", "portfolio_position", "trade_ledger", "recommendation",
+              "portfolio_daily", "backtest_run", "data_ingestion_log", "risk_snapshot"):
         try:
             out[t] = conn.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0]
         except Exception:
@@ -577,6 +715,30 @@ def self_test() -> list:
     h = data_health(conn)
     if not h["counts"].get("etf_basic"):
         fails.append("健康检查未统计到基础表")
+    # 策略定义 / 版本 / 日历 / 快照 / 组合 / 假设净值
+    sync_strategy_definitions(conn, [
+        {"strategy_id": "A", "strategy_name": "质量筛选", "strategy_type": "screen",
+         "description": "ETF 质量筛选", "active_version": "v1", "enabled": True}])
+    sync_strategy_versions(conn, [
+        {"version_id": "v1", "strategy_id": "A", "parameters_json": "{}",
+         "parameter_hash": "h0", "approval_status": "approved"}])
+    sync_trading_calendar(conn, "SSE", ["2026-11-05", "2026-11-06"],
+                          start="2026-11-05", end="2026-11-08")
+    sync_profile_snapshot(conn, {"etf_code": "510300", "report_date": "2026-11-06",
+                                 "expense_ratio": 0.6, "benchmark": "沪深300"})
+    sync_portfolio(conn, {"portfolio_id": "P_DEFAULT", "portfolio_name": "默认组合",
+                          "risk_profile": "稳健型"})
+    sync_portfolio_daily(conn, [
+        {"portfolio_id": "P_DEFAULT", "trade_date": "2026-11-06",
+         "daily_return_pct": 0.12, "cumulative_return_pct": 1.0,
+         "quality_flag": "hypothetical"}])
+    c = counts(conn)
+    if c.get("strategy_definition") != 1 or c.get("strategy_version") != 1:
+        fails.append("策略定义/版本写入失败")
+    if not c.get("trading_calendar") or c.get("portfolio_daily") != 1:
+        fails.append("交易日历/组合净值写入失败")
+    if len(c) != 20:
+        fails.append(f"counts 应覆盖 20 张表，实际 {len(c)}")
     conn.close()
     return fails
 

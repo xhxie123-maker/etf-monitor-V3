@@ -22,6 +22,7 @@ from __future__ import annotations
 import json
 import math
 import os
+import hashlib
 from datetime import datetime
 
 import numpy as np
@@ -111,6 +112,34 @@ def _jsonable(o):
     if isinstance(o, pd.Timestamp):
         return o.strftime("%Y-%m-%d")
     return o
+
+
+def _hypothetical_nav(rets: pd.DataFrame, weights_pct: dict) -> list:
+    """
+    用风险预算权重（含现金）回放近 260 日，构造假设组合净值（非实盘）。
+    返回 [{date, nav, drawdown_pct, daily_return_pct}]，每 2 个点抽 1 个控制体积。
+    """
+    if rets is None or rets.empty or not weights_pct:
+        return []
+    w = {c: float(p) / 100.0 for c, p in weights_pct.items() if c in rets.columns}
+    if not w:
+        return []
+    r = rets[sorted(w.keys())].copy()
+    port = sum(r[c].fillna(0.0) * w[c] for c in w)
+    nav = (1.0 + port).cumprod()
+    peak = nav.cummax()
+    dd = (nav / peak - 1.0) * 100.0
+    out = []
+    for i, (idx, v) in enumerate(nav.items()):
+        if i % 2:
+            continue
+        out.append({
+            "date": pd.Timestamp(idx).strftime("%Y-%m-%d"),
+            "nav": round(float(v), 4),
+            "drawdown_pct": round(float(dd.iloc[i]), 2),
+            "daily_return_pct": round(float(port.iloc[i]) * 100, 3),
+        })
+    return out
 
 
 def build(ctx: dict) -> dict:
@@ -290,6 +319,9 @@ def build(ctx: dict) -> dict:
 
                             ) if capital else {"ok": False, "reason": "配置文件 v5.capital_cny 为空，未提供资金规模", "plan": []}
 
+    # 假设组合净值回放（非实盘；portfolio_daily 表与前端图表共用）
+    hyp_nav = _hypothetical_nav(rets, sizing.get("weights") or {})
+
     decision_ctx = {
         "trade_date": main_date,
         "regime": regime,
@@ -387,6 +419,59 @@ def build(ctx: dict) -> dict:
             "reasons": regime3.get("reasons") or [], "model_version": rge.MODEL_VERSION})
         sdb.sync_risk_snapshot(conn, "P_DEFAULT", risk)
         sdb.sync_instrument_rules(conn, tr.rules_table())
+        # 组合信息（资金未确认时金额留空）
+        sdb.sync_portfolio(conn, {
+            "portfolio_id": "P_DEFAULT", "portfolio_name": "默认辅助组合",
+            "risk_profile": (risk_profile.get("risk_level") or "稳健型"),
+            "max_drawdown_limit_pct": max_dd,
+            "benchmark_id": "000300"})
+        # 策略定义 / 版本（A/B/C/D，参数与版本可追溯）
+        sdefs, svers = [], []
+        stype_map = {"A": "screen", "B": "trend", "C": "momentum", "D": "allocation"}
+        sname_map = {"A": "ETF 质量筛选", "B": "趋势跟随", "C": "多周期动量轮动", "D": "稳健多资产配置"}
+        for sid in ("A", "B", "C", "D"):
+            so = strat.get(sid) if isinstance(strat, dict) else None
+            if not so:
+                continue
+            vid = so.get("version_id")
+            sdefs.append({"strategy_id": sid, "strategy_name": sname_map[sid],
+                          "strategy_type": stype_map[sid],
+                          "description": sname_map[sid], "active_version": vid,
+                          "enabled": bool(so.get("ok", True))})
+            svers.append({"version_id": vid, "strategy_id": sid,
+                          "parameters_json": json.dumps(
+                              {"rules": so.get("rules"), "model_version": vid},
+                              ensure_ascii=False, default=str),
+                          "parameter_hash": hashlib.md5(json.dumps(
+                              so.get("rules"), sort_keys=True, default=str).encode("utf-8")).hexdigest()[:16],
+                          "approval_status": "approved"})
+        sdb.sync_strategy_definitions(conn, sdefs)
+        sdb.sync_strategy_versions(conn, svers)
+        # 交易日历（从行情日期推导）
+        cal_src = price_map.get("510300")
+        if cal_src is not None:
+            cal_dates = cal_src["date"].tolist()
+            sdb.sync_trading_calendar(
+                conn, "SSE", cal_dates,
+                start=cal_dates[0], end=cal_dates[-1])
+        # 基本面快照（只写实际可得字段）
+        for code in pool:
+            q = qmap.get(code) or {}
+            m = q.get("metrics") or {}
+            tq = m.get("tracking") or {}
+            sdb.sync_profile_snapshot(conn, {
+                "etf_code": code, "report_date": main_date,
+                "tracking_error": tq.get("tracking_error_ann_pct"),
+                "expense_ratio": m.get("expense_ratio_pct")
+                                 or pool[code].get("expense_ratio"),
+                "benchmark": pool[code].get("index_name"),
+                "source_date": main_date})
+        # 假设组合每日净值（hypothetical，非实盘）
+        sdb.sync_portfolio_daily(conn, [
+            {"portfolio_id": "P_DEFAULT", "trade_date": d["date"],
+             "daily_return_pct": d["daily_return_pct"],
+             "cumulative_return_pct": round((d["nav"] - 1.0) * 100, 2),
+             "drawdown_pct": d["drawdown_pct"]} for d in hyp_nav])
         for r in dsrc.ingestion_rows(src_report, ["etf_daily_bar", "etf_valuation", "etf_signal"]):
             sdb.log_ingestion(conn, r["source_id"], r["data_type"], r["requested"],
                               r["success"], r["failed"], status=r["status"], error=r.get("error"))
@@ -410,6 +495,11 @@ def build(ctx: dict) -> dict:
         conn.close()
     except Exception as e:
         db_info["error"] = f"{type(e).__name__}: {e}"
+        try:
+            conn.rollback()
+            conn.close()
+        except Exception:
+            pass
 
     # ---------- 回测验证（PRD 第 8 章）----------
     bt_out = {}
@@ -523,6 +613,7 @@ def build(ctx: dict) -> dict:
         "decisions": decisions, "rule_gate": rule_gate, "db": db_info,
         "backtest": bt_out, "xcheck": xcheck, "acceptance": accept,
         "regime3": regime3, "strategies": strat, "stress": stress_out,
+        "hypothetical_nav": hyp_nav,
         "data_sources": src_report,
         "macro_regime": regime,
         "unlock": {

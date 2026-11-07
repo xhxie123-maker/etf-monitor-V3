@@ -47,7 +47,7 @@
 | `position_sizing.py` | 风险预算权重（`w ∝ base_w/σ`）+ 整手计划 + 约束检查 |
 | `decision_center.py` | 五闸门、12 字段建议、失效条件、复盘状态机、下一交易日 |
 | `trading_rules.py` | 品种规则层（T+0/T+1、盘后固定价格、最小单位） |
-| `smart_db.py` | 20 表 SQLite schema + 10 个 sync + `counts` / `data_health` |
+| `smart_db.py` | 20 表 SQLite schema + 17 个 sync + `counts`（全 20 表）/ `data_health` |
 | `backfill_indicators.py` | `indicator_daily` 历史逐日回填（无未来函数） |
 | `api_layer.py` | 13 个 REST 端点契约 + 静态 JSON 快照生成 |
 | `api_server.py` | 标准库 `http.server` 实时服务（与快照同一响应契约） |
@@ -72,12 +72,19 @@
 | `risk_snapshot` | 1 | 组合风险与熔断 |
 | `recommendation` | 10 | 决策建议（12 字段 + `review_status`） |
 | `backtest_run` | 2 | 回测结果（指标 + 防作弊结论） |
-| `data_ingestion_log` | 30 | 每源每类一行（ok / degraded_p2 / failed） |
+| `data_ingestion_log` | 36 | 每源每类一行（ok / degraded_p2 / failed） |
 | `instrument_rule` | 10 | 品种规则（当前全部 `verified=False`） |
-| `etf_flow` / `etf_profile_snapshot` / `portfolio` / `portfolio_daily` / `portfolio_position` | 0 | 预留：资金流、产品快照、组合与持仓 |
-| `strategy_definition` / `strategy_version` | 0 | 预留：策略规则与版本留痕 |
-| `trade_ledger` | 0 | 预留：人工交易流水（仅本地写入） |
-| `trading_calendar` | 0 | 预留：交易日历 |
+| `etf_profile_snapshot` | 10 | 产品快照（只写实际可得字段，不估算） |
+| `portfolio` | 1 | 组合主记录（资金未确认，金额字段留 NULL） |
+| `portfolio_daily` | 130 | 假设组合逐日净值（`quality_flag=hypothetical`） |
+| `strategy_definition` | 4 | A/B/C/D 策略规则定义（幂等 upsert） |
+| `strategy_version` | 4 | 策略版本（参数 JSON + 哈希 + 训练/验证区间） |
+| `trading_calendar` | 5276 | 交易日历（从行情日期推导，无行情日 `is_open=0`） |
+| `etf_flow` | 0 | 无可靠「份额变化 vs 成交额」分离数据源，如实留空，不造数 |
+| `portfolio_position` | 0 | 用户未提供实际持仓；待人工输入后写入 |
+| `trade_ledger` | 0 | PRD 规定只记用户实际确认的交易，无交易则为空 |
+
+`portfolio_daily.quality_flag` 区分 `actual`（实盘）/ `hypothetical`（假设回放）；旧库缺列时 `init_db` 自动 `ALTER TABLE ADD COLUMN` 迁移。
 
 健康检查：`smart_db.data_health()` 返回 `{ok, counts, last_bar_date, last_signal_date, failed_ingestions}`；`failed_ingestions > 0` 时 `ok=False`，属设计行为（P2 源失败会被如实记账）。
 
@@ -167,7 +174,9 @@ PRD 要求 FastAPI；本机无 `fastapi/uvicorn/pydantic/sqlalchemy/scipy/apsche
 
 ## 11. 前端（11 页，零构建静态多页）
 
-深色金融终端风格（`frontend/assets/theme.css`），原生 XHR 读取 `../output/api/v1/*.json`，无构建步骤、无外部 CDN 依赖。
+深色金融终端风格（`frontend/assets/theme.css`），原生 XHR 读取 `../output/api/v1/*.json`，无构建步骤。
+
+图表组件 `frontend/assets/charts.js`（ES5，IIFE 暴露 `Charts.line/bar/hbar`）：优先动态加载 jsdelivr ECharts 5.5.0 CDN（6 秒超时/失败自动降级到自写 canvas 渲染，含网格、刻度、图例、多系列折线、分组柱、横向柱、设备像素比处理）；`yAxis.scale=true` 保证净值类窄幅序列使用自然刻度。页面脚本带版本查询（`?v=6`）以规避浏览器强缓存。
 
 | 页面 | 文件 | 数据源 |
 |---|---|---|
@@ -248,7 +257,7 @@ python api_server.py --port 8010
 |---|---|---|---|
 | 数据库 | PostgreSQL | SQLite（20 表同关系模型） | 运行环境无常驻服务；GitHub Pages 纯静态 |
 | API | FastAPI + Pydantic | 同一契约 + 静态快照 / 标准库 `http.server` | 本机未安装 fastapi/uvicorn/pydantic/sqlalchemy |
-| 前端 | Vue3 + TS + Vite + ECharts + Element Plus | 零构建静态多页（11 页 + 原生 XHR） | GitHub Pages 无构建链；避免 CDN 依赖与 404 |
+| 前端 | Vue3 + TS + Vite + ECharts + Element Plus | 零构建静态多页（11 页 + 原生 XHR；图表 ECharts CDN + canvas 回退） | GitHub Pages 无构建链；CDN 失败仍可自绘 |
 | 调度 | APScheduler | GitHub Actions cron（工作日 15:35） | 无长驻进程 |
 | ATR / ADX | `indicator_daily` 含 ATR/ADX | 字段留空 | 数据源仅 `date, close`，无 high/low，不用估算值填充 |
 | 品种规则 | 逐只核验 T+0/T+1、盘后固定价格资格 | 10 只全部 `verified=False`，`rule_gate` 返回 warn | 无稳定可核验的官方规则接口；不臆造 |
@@ -265,5 +274,13 @@ python api_server.py --port 8010
 - 新增 `backfill_indicators.py`、`tests/test_v5_modules.py`、`frontend/`（11 页 + 资产）。
 - `.github/workflows/daily.yml`：`git add` 增加 `output/api`；Pages artifact 复制 `frontend/`，根路径重定向到 `frontend/dashboard.html`。
 - `portfolio_config.json`：新增 `v5` 块（风险偏好、资金、单只/组合阈值、熔断阈值、成本惩罚、`d_template` 模板选择）。
+
+### 本轮补齐（2026-11-07）
+
+- `smart_db.py`：新增 7 个 sync（`strategy_definitions/versions`、`trading_calendar`、`profile_snapshot`、`portfolio`、`portfolio_daily`、`position`）；`counts()` 扩至全 20 表；`portfolio_daily` 加 `quality_flag` 并支持旧库自动迁移。
+- `v5_layer.py`：新增 `_hypothetical_nav()` 假设组合净值回放（近 260 日，非实盘），DB 块写入 portfolio / A/B/C/D 定义与版本 / 交易日历 / 产品快照 / 假设净值；参数哈希改用 `hashlib.md5`；异常路径补 rollback+close。
+- `api_layer.py`：portfolio 端点增加 `hypothetical_nav` 与 `hypothetical_nav_note`。
+- 新增 `frontend/assets/charts.js`（ECharts CDN + canvas 回退）；`app.js` 六页接入图表（驾驶舱/市场/策略/回测/组合/风险）；`_gen_frontend.py` 模板同步加载 charts.js。
+- 验收变化：#1、#9 由 partial 转 pass，当前 9 pass + 1 partial（#7 仍受 PRD 15.4 未确认风险偏好所限）。
 
 > V4.1 的完整功能与口径说明见 git 历史（`3943efc`、`9fa3b2b`），本次重构未回退任何已上线能力。

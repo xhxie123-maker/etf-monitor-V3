@@ -28,7 +28,8 @@ TPL = """<!doctype html>
 </head>
 <body data-page="{key}">
 <div id="app"></div>
-<script src="assets/app.js"></script>
+<script src="assets/charts.js?v=6"></script>
+<script src="assets/app.js?v=6"></script>
 </body>
 </html>
 """
