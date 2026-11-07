@@ -37,6 +37,9 @@ import requests
 import akshare as ak
 
 import decision_engine
+import etf_quality
+import portfolio_risk
+import strategy_research
 
 # ============================================================
 # 0. 配置区
@@ -1428,6 +1431,17 @@ def render_dashboard(meta: dict, ratio: dict, etfs: list, macro: dict = None, co
   .gate-chip.gate-block {{ color:#ef4444; border-color:rgba(239,68,68,.45); background:rgba(239,68,68,.10); }}
   .gate-chip.gate-ok {{ color:#22c55e; border-color:rgba(34,197,94,.4); background:rgba(34,197,94,.08); }}
   .next-cond {{ font-size:11.5px; color:var(--sub); margin-top:4px; line-height:1.6; }}
+  .full-card {{ grid-column:span 3; }}
+  .v4-tbl {{ width:100%; border-collapse:collapse; font-size:12px; margin-top:6px; }}
+  .v4-tbl th {{ color:var(--sub); font-weight:600; text-align:left; padding:6px 8px; border-bottom:1px solid var(--line); white-space:nowrap; }}
+  .v4-tbl td {{ padding:6px 8px; border-bottom:1px solid rgba(42,53,84,.5); white-space:nowrap; }}
+  .layer-grid {{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin:8px 0; }}
+  .layer-box {{ border:1px solid var(--line); border-radius:10px; padding:10px 12px; background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02)); }}
+  .layer-box .lk {{ display:block; font-size:11px; color:var(--sub); margin-bottom:6px; }}
+  .layer-box .lv {{ font-weight:700; font-size:14px; }}
+  .two-col {{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }}
+  .neg {{ color:#f87171; }} .pos {{ color:#4ade80; }} .neu {{ color:#fbbf24; }}
+  @media (max-width:900px) {{ .layer-grid,.two-col {{ grid-template-columns:1fr; }} .full-card {{ grid-column:span 1; }} }}
   .foot {{ margin-top:16px; color:var(--sub); font-size:12px; text-align:center; line-height:1.8; }}
   .rules {{ display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:14px; }}
   .rules li {{ margin-left:16px; }}
@@ -1508,6 +1522,53 @@ def render_dashboard(meta: dict, ratio: dict, etfs: list, macro: dict = None, co
   <div class="card corr-card">
     <h3>组合相关性 <span class="code">近250交易日日收益两两相关系数 · 判断组合分散度</span></h3>
     <div class="corr-grid" id="corr-brief"></div>
+  </div>
+  </div>
+
+  <!-- V4.1 三层纪律与再平衡（数据闸门 → 市场环境 → 再平衡评估） -->
+  <div class="grid">
+  <div class="card full-card">
+    <h3>三层纪律与再平衡 <span class="code">数据闸门 · 市场环境 · 再平衡评估 ｜ 上层未通过则下层不执行</span></h3>
+    <div id="discipline-layers"></div>
+    <div class="mini" style="margin-top:8px" id="rebalance-detail"></div>
+  </div>
+  </div>
+
+  <!-- V4.1 组合风险与六情景压力测试 -->
+  <div class="grid">
+  <div class="card full-card">
+    <h3>组合风险与六情景压力 <span class="code">年化波动 · 最大回撤 · CVaR · 风险贡献 · 六情景损失</span></h3>
+    <div id="risk-summary"></div>
+    <div class="two-col" style="margin-top:10px">
+      <div id="risk-contrib"></div>
+      <div id="stress-table"></div>
+    </div>
+  </div>
+  </div>
+
+  <!-- V4.1 ETF 质量与穿透（费率/流动性/跟踪/持仓集中度/重合） -->
+  <div class="grid">
+  <div class="card full-card">
+    <h3>ETF 质量与穿透 <span class="code">综合质量 · 费率 · 流动性 · 跟踪质量 · 前十大集中度 · 持仓重合</span></h3>
+    <div id="quality-table"></div>
+    <div class="mini" style="margin-top:8px" id="overlap-pairs"></div>
+  </div>
+  </div>
+
+  <!-- V4.1 六策略对比与滚动验证 -->
+  <div class="grid">
+  <div class="card full-card">
+    <h3>六策略对比与滚动验证 <span class="code">买入持有 · 固定定投 · 周期再平衡 · PE定投 · 趋势过滤 · V4组合</span></h3>
+    <div id="strategy-table"></div>
+    <div class="mini" style="margin-top:8px" id="rolling-summary"></div>
+  </div>
+  </div>
+
+  <!-- V4.1 隐私隔离说明 -->
+  <div class="grid">
+  <div class="card full-card">
+    <h3>隐私与数据隔离 <span class="code">个人持仓/记录仅本地存储 · 不入库不上传</span></h3>
+    <div class="mini" id="privacy-note"></div>
   </div>
   </div>
 
@@ -2004,6 +2065,119 @@ DATA.etfs.forEach(e => {{
     peDiv.innerHTML = '<div style="font-size:11px;color:#fbbf24;padding:10px">估值图渲染失败（ECharts未加载），其余内容不受影响</div>';
   }}
 }});
+
+/* ===== V4.1 新卡片渲染 ===== */
+function nz(v) {{ return (v === null || v === undefined) ? '--' : v; }}
+
+/* 三层纪律与再平衡 */
+(function () {{
+  const D = DATA.meta.discipline, R = DATA.meta.market_regime || {{}}, rb = DATA.meta.rebalance || {{}};
+  const el = document.getElementById('discipline-layers');
+  if (!D) {{ el.innerHTML = '<div class="mini">三层纪律数据未生成</div>'; return; }}
+  const cls = function (s) {{ return (s === '维持' || s === '正常') ? 'pos' : (s === '暂停' ? 'neg' : 'neu'); }};
+  const boxes = D.layers.map(function (L) {{
+    return '<div class="layer-box"><span class="lk">' + L.name + '</span>' +
+      '<span class="lv ' + cls(L.status) + '">' + L.status + '</span>' +
+      '<div class="mini" style="margin-top:6px">' + L.desc + '</div>' +
+      (L.triggers ? '<div class="mini" style="margin-top:4px">触发：' + L.triggers.join('、') + '</div>' : '') +
+      '</div>';
+  }}).join('');
+  el.innerHTML = '<div class="mini" style="margin-bottom:6px">市场环境：<b>' + (R.label || '--') +
+    '</b>（' + (R.basis || '') + '；宏观可用 ' + nz(R.macro_ok) + '/' + nz(R.macro_total) + '）</div>' +
+    '<div class="layer-grid">' + boxes + '</div>';
+  const trig = (rb.triggers || []).map(function (t) {{ return '<span class="gate-chip gate-warn">' + t.label + '</span>'; }}).join('');
+  document.getElementById('rebalance-detail').innerHTML =
+    '再平衡评估：' + (trig || '<span class="gate-chip gate-ok">无触发</span>') +
+    ' ｜ 单边换手 ' + nz(rb.one_way_turnover_pct) + '% ｜ 预估成本 ' + nz(rb.est_cost_pct) + '% ｜ 偏离口径 ' + (rb.deviation_mode || '--') +
+    '<div style="margin-top:6px">' + (rb.execution_note || '') + '（无实际持仓时为基准静态评估；录入 private/holdings.json 后可计算实际偏离）</div>';
+}})();
+
+/* 组合风险与六情景压力 */
+(function () {{
+  const rp = DATA.meta.risk_report || {{}};
+  const el = document.getElementById('risk-summary');
+  if (rp.error) {{ el.innerHTML = '<div class="mini neg">风险引擎失败：' + rp.error + '</div>'; return; }}
+  const tail = rp.tail_risk || {{}}, conc = rp.concentration || {{}};
+  const kv = [
+    ['样本交易日', nz(rp.n_days)],
+    ['组合年化波动率', nz(rp.portfolio_ann_vol_pct) + '%'],
+    ['最大回撤', '<span class="neg">' + nz(rp.portfolio_mdd_pct) + '%</span>'],
+    ['下行波动率', nz(rp.downside_vol_pct) + '%'],
+    ['VaR95 / CVaR95（日）', (tail.var95_pct == null ? '--' : tail.var95_pct + '% / ' + tail.cvar95_pct + '%')],
+    ['类别 HHI', nz(conc.hhi)],
+  ];
+  el.innerHTML = '<div class="kv">' + kv.map(function (p) {{ return '<div class="k">' + p[0] + '</div><div class="v">' + p[1] + '</div>'; }}).join('') + '</div>' +
+    '<div class="mini" style="margin-top:6px">类别权重：' + Object.keys(conc.class_weights_pct || {{}}).map(function (k) {{ return k + ' ' + conc.class_weights_pct[k] + '%'; }}).join(' ｜ ') + '</div>';
+  const rc = rp.risk_contributions || {{}};
+  let rcHtml = '<h3 style="font-size:13px">单一资产风险贡献（基于协方差）</h3>';
+  if (rc.contributions) {{
+    rcHtml += '<table class="v4-tbl"><tr><th>代码</th><th>权重%</th><th>风险贡献%</th></tr>' +
+      rc.contributions.map(function (c) {{ return '<tr><td>' + c.code + '</td><td>' + c.weight_pct + '</td><td>' + c.risk_contrib_pct + '</td></tr>'; }}).join('') + '</table>';
+  }} else rcHtml += '<div class="mini">数据不足</div>';
+  document.getElementById('risk-contrib').innerHTML = rcHtml;
+  let stHtml = '<h3 style="font-size:13px">六情景压力测试（组合损失%）</h3>';
+  stHtml += '<table class="v4-tbl"><tr><th>情景</th><th>组合损失</th><th>假设</th></tr>' +
+    (rp.stress_test || []).map(function (s) {{ return '<tr><td>' + s.name + '</td><td class="neg">' + s.portfolio_loss_pct + '%</td><td style="white-space:normal;color:var(--sub)">' + (s.assumption || '') + '</td></tr>'; }}).join('') + '</table>';
+  document.getElementById('stress-table').innerHTML = stHtml;
+}})();
+
+/* ETF 质量与穿透 */
+(function () {{
+  const qr = DATA.meta.quality_report;
+  const el = document.getElementById('quality-table');
+  if (!qr || qr.error) {{ el.innerHTML = '<div class="mini ' + (qr && qr.error ? 'neg' : '') + '">质量评估' + (qr && qr.error ? ('失败：' + qr.error) : '未生成') + '</div>'; return; }}
+  const rows = qr.map(function (r) {{
+    const m = r.metrics || {{}}, t = m.tracking || {{}};
+    return '<tr><td>' + r.name + '</td><td>' + r.code + '</td><td>' + r.asset_class + '</td>' +
+      '<td><b>' + nz(r.quality_score) + '</b></td><td>' + nz(m.expense_ratio_pct) + '</td>' +
+      '<td>' + nz(m.avg_amount_wan) + '</td><td>' + nz(m.spread_pct) + '</td>' +
+      '<td>' + (t.tracking_error_ann_pct == null ? '--' : t.tracking_error_ann_pct) + '</td>' +
+      '<td>' + nz(m.top10_concentration_pct) + '</td><td>' + r.confidence + '</td></tr>';
+  }}).join('');
+  el.innerHTML = '<table class="v4-tbl"><tr><th>名称</th><th>代码</th><th>资产类</th><th>质量分</th><th>费率%</th><th>20日均额(万)</th><th>相对价差%</th><th>跟踪误差年化%</th><th>前十大集中%</th><th>置信度</th></tr>' + rows + '</table>';
+  const ov = DATA.meta.overlap_pairs || [];
+  document.getElementById('overlap-pairs').innerHTML = '持仓穿透重合对（Top ' + ov.length + '）：' +
+    (ov.length ? ov.map(function (o) {{ return '<span class="gate-chip">' + o.a + ' × ' + o.b + ' 共' + o.n_common + '只 / 重合权重' + o.common_w_in_a_pct + '%</span>'; }}).join('') : '无显著重合或非股票型不适用');
+}})();
+
+/* 六策略对比与滚动验证 */
+(function () {{
+  const sr = DATA.meta.strategy_research;
+  const el = document.getElementById('strategy-table');
+  if (!sr || sr.error) {{ el.innerHTML = '<div class="mini">策略研究未生成</div>'; return; }}
+  let html = '';
+  Object.keys(sr).forEach(function (code) {{
+    const S = sr[code].strategies || {{}};
+    const bh = S.buy_hold || {{}}, fx = S.fixed_dca || {{}}, pe = S.pe_dca || {{}}, tf = S.trend_filter || {{}}, v4 = S.v4_combined || {{}}, pr = S.periodic_rebal || {{}};
+    html += '<div style="margin-bottom:10px"><div class="mini" style="margin-bottom:4px"><b>' + code + '</b> 六策略对比</div>' +
+      '<table class="v4-tbl"><tr><th>策略</th><th>口径</th><th>年化/IRR</th><th>最大回撤</th><th>Sharpe/倍数</th><th>其他</th></tr>' +
+      '<tr><td>买入持有</td><td>一次性</td><td>' + nz(bh.cagr_pct) + '%</td><td class="neg">' + nz(bh.mdd_pct) + '%</td><td>' + nz(bh.sharpe) + '</td><td>暴露' + nz(bh.exposure_pct) + '%</td></tr>' +
+      '<tr><td>固定定投</td><td>现金流</td><td>' + (fx.irr_ann_pct == null ? '--' : fx.irr_ann_pct + '%') + '</td><td>--</td><td>' + (fx.total_multiple == null ? '--' : fx.total_multiple + 'x') + '</td><td>' + nz(fx.n_contributions) + ' 笔</td></tr>' +
+      '<tr><td>周期再平衡</td><td>' + (pr.note ? '单资产' : '--') + '</td><td>' + (pr.cagr_pct == null ? '--' : pr.cagr_pct + '%') + '</td><td>' + (pr.mdd_pct == null ? '--' : pr.mdd_pct + '%') + '<td colspan="2" style="color:var(--sub)">' + (pr.note || '') + '</td></tr>' +
+      '<tr><td>PE定投</td><td>现金流</td><td>' + (pe.irr_ann_pct == null ? '--' : pe.irr_ann_pct + '%') + '</td><td>--</td><td>' + (pe.total_multiple == null ? '--' : pe.total_multiple + 'x') + '</td><td style="color:var(--sub)">' + (pe.note || '') + '</td></tr>' +
+      '<tr><td>趋势过滤</td><td>一次性</td><td>' + nz(tf.cagr_pct) + '%</td><td class="neg">' + nz(tf.mdd_pct) + '%</td><td>' + nz(tf.sharpe) + '</td><td>暴露' + nz(tf.exposure_pct) + '%</td></tr>' +
+      '<tr><td>V4组合</td><td>现金流+一次性</td><td>' + ((v4.cashflow || {{}}).irr_ann_pct == null ? '--' : v4.cashflow.irr_ann_pct + '%') + '</td><td class="neg">' + ((v4.lump || {{}}).mdd_pct == null ? '--' : v4.lump.mdd_pct + '%') + '</td><td>' + ((v4.cashflow || {{}}).total_multiple == null ? '--' : v4.cashflow.total_multiple + 'x') + '</td><td>趋势闸门+PE乘数</td></tr>' +
+      '</table></div>';
+  }});
+  el.innerHTML = html;
+  let rh = '';
+  Object.keys(sr).forEach(function (code) {{
+    const st = sr[code].stability || {{}};
+    if (st.n_windows) {{
+      rh += '<div style="margin-top:6px"><b>' + code + '</b> 滚动 ' + st.n_windows + ' 窗口：趋势过滤跑赢买入持有 ' + st.trend_beat_bh_windows + ' 窗口（' + st.trend_beat_bh_rate_pct + '%）；V4 CAGR 均值 ' + (((st.v4 || {{}}).mean_pct == null) ? '--' : st.v4.mean_pct + '%') + '（标准差 ' + (((st.v4 || {{}}).std_pct == null) ? '--' : st.v4.std_pct) + '）</div>';
+    }}
+  }});
+  document.getElementById('rolling-summary').innerHTML = rh || '<span class="mini">样本不足，无滚动窗口</span>';
+}})();
+
+/* 隐私隔离 */
+(function () {{
+  document.getElementById('privacy-note').innerHTML =
+    '· 个人持仓（private/holdings.json）与决策/告警流水（private/journal.jsonl）仅写入本地，investment_journal.py 纯本地、无任何网络请求。<br>' +
+    '· private/ 已被 .gitignore 拦截，且不在 CI 自动提交白名单内，不会进入 GitHub 仓库、不会出现在线上看板。<br>' +
+    '· 主流程默认不自动写持仓，需本地手动调用 apply_trade 录入；线上看板只展示基于公开行情的研究结果，不含个人持仓信息。<br>' +
+    '· 加权平均成本、实现盈亏、权重偏离与区间复盘均可在本地由 investment_journal.py 复算。';
+}})();
 </script>
 </body>
 </html>"""
@@ -2086,6 +2260,7 @@ def main():
     etfs = []
     data_dates = set()
     price_rets = {}   # 组合相关性：近250交易日日收益
+    price_map_full = {}   # code -> 全历史价格 DataFrame（供组合风险/质量/策略研究）
     for name, cfg in ETF_POOL.items():
         price_df = safe_call(f"{name}行情", get_etf_daily, cfg["code"])
         if price_df is None:
@@ -2156,6 +2331,7 @@ def main():
         sig["price_n"] = int(len(price_df))
         sig["index_n"] = int(len(idx_df)) if idx_df is not None else 0
         etfs.append(sig)
+        price_map_full[cfg["code"]] = price_df[["date", "close"]].copy()
         price_rets[name] = price_df.set_index("date")["close"].pct_change().dropna().tail(250)
         w = sig.get("pe_windows") or {}
         p1 = w.get("近1年") or {}
@@ -2320,6 +2496,93 @@ def main():
             log(f"云端容错: 保留/生成占位看板 {path}")
             return 0
         return 1
+
+    # ============================================================
+    # V4.1 新模块：组合风险 / 质量穿透 / 策略研究 / 三层纪律
+    # ============================================================
+    weights, class_by_code = {}, {}
+    for _n, _c in ETF_POOL.items():
+        weights[_c["code"]] = float(_c["base_w"]) / 100.0
+        class_by_code[_c["code"]] = _c["asset_class"]
+    scenarios = PORTFOLIO_CFG.get("stress_scenarios", [])
+    _fee = float(BT_CFG.get("fee", 0.001))
+    _slip = float(BT_CFG.get("slippage", 0.001))
+
+    # 1) 组合级风险引擎 + 六情景压力测试
+    try:
+        rr = portfolio_risk.evaluate(price_map_full, weights, class_by_code, scenarios)
+        meta["risk_report"] = rr
+        log("组合风险引擎: 年化波动 %s%% / MDD %s%% / 压力情景 %d 个" %
+            (rr.get("portfolio_ann_vol_pct"), rr.get("portfolio_mdd_pct"),
+             len(rr.get("stress_test", []))))
+    except Exception as e:
+        log(f"组合风险引擎失败: {e}")
+        meta["risk_report"] = {"error": str(e)}
+
+    # 2) 市场环境 + 三层纪律 + 再平衡评估（无实际持仓，再平衡按基准静态评估）
+    try:
+        broad_trend = None
+        for _s in etfs:
+            if _s.get("code") == "510300":
+                broad_trend = (_s.get("trend") or {}).get("label")
+        regime = decision_engine.market_regime(macro, broad_trend)
+        rebal = decision_engine.rebalance_plan(
+            weights, None, str(main_date),
+            PORTFOLIO_CFG.get("rebalance", {}).get("calendar_months", [6, 12]),
+            float(PORTFOLIO_CFG.get("rebalance", {}).get("deviation_pp", 10)),
+            fee_rate=_fee)
+        meta["market_regime"] = regime
+        meta["rebalance"] = rebal
+        meta["discipline"] = decision_engine.discipline_layers(
+            {"fatal": n_block > 0, "block_add": n_block > 0}, regime, rebal)
+        log("三层纪律: %s" % meta["discipline"]["summary"])
+    except Exception as e:
+        log(f"三层纪律评估失败: {e}")
+
+    # 3) ETF 产品质量与穿透（含网络请求，失败不致命）
+    try:
+        index_map = {}
+        for _n, _c in ETF_POOL.items():
+            _ic = _c.get("index_code")
+            if _ic:
+                _ip = OUT_DIR / f"index_history_{_ic}.csv"
+                if _ip.exists():
+                    try:
+                        index_map[_ic] = pd.read_csv(_ip, parse_dates=["date"])
+                    except Exception:
+                        pass
+        _qresults, _ovpairs = etf_quality.evaluate_all(
+            _CFG, hist_map=price_map_full, index_map=index_map, use_em=False)
+        meta["quality_report"] = _qresults
+        meta["overlap_pairs"] = _ovpairs[:10]
+        log(f"ETF质量评估: {len(_qresults)} 只 / 持仓穿透重合对 {len(_ovpairs)} 个")
+    except Exception as e:
+        log(f"ETF质量评估失败: {e}")
+        meta["quality_report"] = {"error": str(e)}
+
+    # 4) 策略研究：对核心标的跑六基准 + 滚动验证
+    try:
+        import backtest as _btmod
+        dca_p = PORTFOLIO_CFG.get("dca", {})
+        research = {}
+        for _code in ["510300", "515180"]:
+            if _code in price_map_full:
+                _pdf = price_map_full[_code].copy()
+                _sdf = _btmod.compute_signals(_pdf)
+                _pdf["trend_pos"] = _sdf["signal"]
+                _roll = strategy_research.rolling_validate(
+                    _pdf, dca_p, window=500, step=250, fee=_fee, slip=_slip)
+                research[_code] = {
+                    "strategies": strategy_research.run_strategies(
+                        _pdf, dca_p, fee=_fee, slip=_slip),
+                    "rolling": _roll,
+                    "stability": strategy_research.stability_summary(_roll),
+                }
+        meta["strategy_research"] = research
+        log(f"策略研究: {len(research)} 只核心标的六基准+滚动验证完成")
+    except Exception as e:
+        log(f"策略研究失败: {e}")
+        meta["strategy_research"] = {"error": str(e)}
 
     path = render_dashboard(meta, ratio, etfs, macro=macro, corr=corr)
     if path is None:
