@@ -51,8 +51,10 @@
   function clsName(v) { return CLS[v] ? CLS[v] + "（" + v + "）" : (v || "—"); }
   function recTxt(v) {    if (v === null || v === undefined) return "—";
     if (typeof v === "object") {
-      var dd = (v.days === undefined) ? (v.recovery_days === undefined ? "—" : v.recovery_days) : v.days;
-      return dd + " 交易日 / " + (v.recovered ? "已恢复" : "未恢复");
+      var dd = (v.days === undefined) ? (v.recovery_days === undefined ?
+        (v.mdd_days === undefined ? "—" : v.mdd_days) : v.recovery_days) : v.days;
+      var rd = (v.recover_days === undefined ? null : v.recover_days);
+      return dd + " 交易日见底 / " + (v.recovered ? "已恢复" : "未恢复（距最高点 " + (rd === null ? "—" : rd) + " 日）");
     }
     return v + " 交易日";
   }
@@ -347,20 +349,25 @@
         if (x.error) return;
         var la = x.lookahead || {}, ro = (x.rolling_oos || {}), se = (x.sensitivity || {});
         var rec = x.recovery;
-        var recTxt = typeof rec === "object" && rec !== null
-          ? (rec.days || rec.recovery_days || "—") + " 交易日 / " + (rec.recovered ? "已恢复" : "未恢复")
-          : (rec === null || rec === undefined ? "—" : rec + " 交易日");
+        var recLine = recTxt(rec);
+        var folds = (ro.folds || []).map(function (f) {
+          var v = (f.test_cagr === undefined ? f.ann_pct : f.test_cagr);
+          return sgn(v) + "%";
+        }).join(" / ") || "—";
+        var npos = (ro.positive_folds === undefined ? ro.n_positive : ro.positive_folds);
+        var nfold = (ro.n_folds === undefined ? (ro.folds || []).length : ro.n_folds);
+        var stable = se.stable === undefined ? (se.verdict === "稳健") : se.stable;
         html += '<div class="grid2"><div class="card"><h2>' + esc(x.code) + ' · 防作弊校验</h2><div class="mini">' +
           "防前视：比对 " + esc(la.checked === undefined ? "—" : la.checked) + " 日，不一致 " +
           esc(la.mismatches === undefined ? "—" : la.mismatches) + " 处（须为 0）｜结果 " +
           (la.ok ? '<span class="g">通过</span>' : '<span class="r">未通过</span>') +
-          "<br>回撤恢复：" + esc(recTxt) + "</div></div>" +
-          '<div class="card"><h2>' + esc(x.code) + ' · 滚动样本外</h2><div class="mini">3 折样本外收益：' +
-          ((ro.folds || []).map(function (f) { return sgn(f.ann_pct) + "%"; }).join(" / ") || "—") +
-          "｜样本外为正 " + esc(ro.n_positive === undefined ? "—" : ro.n_positive) + "/" +
-          esc(ro.n_folds === undefined ? "—" : ro.n_folds) +
-          "<br>参数敏感性：" + (se.stable ? '<span class="g">稳定</span>' : '<span class="r">不稳定</span>') +
-          "（年化区间 " + num(se.min_ann, 2) + "~" + num(se.max_ann, 2) + "%，标准差 " + num(se.std_ann, 2) + "pp）</div></div></div>";
+          "<br>回撤恢复：" + esc(recLine) + "</div></div>" +
+          '<div class="card"><h2>' + esc(x.code) + ' · 滚动样本外</h2><div class="mini">' +
+          esc(nfold) + " 折样本外收益：" + folds +
+          "｜样本外为正 " + esc(npos === undefined ? "—" : npos) + "/" + esc(nfold) +
+          "<br>参数敏感性：" + (stable ? '<span class="g">稳健</span>' : '<span class="r">不稳定</span>') +
+          "（年化区间 " + num(se.ann_min, 2) + "~" + num(se.ann_max, 2) + "%，标准差 " + num(se.ann_std, 2) + "pp）" +
+          "<br>" + esc(ro.note || "") + "</div></div></div>";
       });
       view.innerHTML = html;
     }, function (e) { fail(view, e); });
@@ -372,7 +379,8 @@
       var w = d.weights_pct || {};
       var html = '<div class="card"><h2>组合管理<span class="code">风险预算权重（已乘市场状态乘数）</span></h2>' +
         '<div class="kpis">' + [["目标总敞口", num(d.target_total_pct, 2) + "%"],
-          ["现金准备", num(d.cash_reserve_pct, 2) + "%"], ["市场乘数", num(d.state_multiplier, 2)],
+          ["现金（含未投）", num(100 - Number(d.target_total_pct || 0), 2) + "%"],
+          ["名义现金预留", num(d.cash_reserve_pct, 2) + "%"], ["市场乘数", num(d.state_multiplier, 2)],
           ["风险偏好已确认", d.configured ? '<span class="g">是</span>' : '<span class="lock">否</span>'],
           ["下单计划", d.order_plan && d.order_plan.length ? "已生成" : "未生成"]
         ].map(function (k) {
