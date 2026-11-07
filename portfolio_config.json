@@ -1,6 +1,6 @@
 {
-  "version": "V4.1",
-  "strategy_version": "v4-full-2026-11-07",
+  "version": "V5.0",
+  "strategy_version": "v5-full-2026-11-07",
   "updated": "2026-11-07",
   "description": "V4 中央配置（唯一来源）：四类资产池（核心权益/防御性/分散化/风格行业卫星）、基准权重与仓位上下限、组合集中度、风险预算、压力情景、三层纪律、决策引擎阈值、回测成本、数据质量阈值。etf_monitor.py / decision_engine.py / backtest.py / etf_quality.py / portfolio_risk.py / strategy_research.py 均从本文件读取。",
   "asset_class_legend": {
@@ -159,6 +159,32 @@
     "pe_stale_days": 10,
     "min_price_rows": 130,
     "note": "行情滞后3天告警、超7天阻断；PE陈旧10天；核心维度缺失按闸门规则处理"
+  },
+  "v5": {
+    "version": "V5.0",
+    "risk_profile": {
+      "investment_horizon_years": null,
+      "max_drawdown_tolerance_pct": null,
+      "risk_level": "稳健型",
+      "note": "PRD 15.4 硬前置：投资期限与可承受最大回撤两项为空时，只输出排名/市场状态/趋势/风险指标，不生成个性化目标仓位与数量；填写后自动解锁"
+    },
+    "capital_cny": null,
+    "cash_reserve_pct": 5,
+    "single_vol_cap_pct": 30,
+    "single_dd_cap_pct": -25,
+    "min_amount20_wan": 2000,
+    "max_premium_pct": 1.0,
+    "avg_corr_cap": 0.75,
+    "breaker_yellow_dd_pct": -8,
+    "breaker_orange_dd_pct": -15,
+    "breaker_red_dd_pct": -25,
+    "breaker_yellow_vol_pct": 12,
+    "breaker_orange_vol_pct": 18,
+    "breaker_red_vol_pct": 25,
+    "trade_cost_penalty_ratio": 0.03,
+    "micro_turnover_pct": 2.0,
+    "d_template": "稳健",
+    "note": "V5 分层参数：风险偏好与资金规模、单只波动/回撤上限、流动性与折溢价下限、平均相关性上限、四级熔断阈值、微幅换手抑制阈值；d_template 为 D 策略模板（保守/稳健/平衡）"
   },
   "privacy": {
     "holdings_isolation": true,

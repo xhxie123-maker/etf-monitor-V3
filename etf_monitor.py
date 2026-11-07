@@ -1341,6 +1341,14 @@ def render_dashboard(meta: dict, ratio: dict, etfs: list, macro: dict = None, co
     src_line = (f'<div class="sub" style="font-size:11px;color:#7c8aa8;margin-top:2px">'
                 f'行情来源(实际生效)：{_src_txt} ｜ 东财本轮失败 {_fail_n} 次已自动降级备用源</div>') if _ss else ""
 
+    # V5.0 驾驶舱区块（评分/风控/决策/库/回测/验收），失败则整块不渲染
+    try:
+        import v5_layer as _v5mod
+        v5_html = _v5mod.render(meta.get("v5") or {})
+    except Exception as _e:
+        v5_html = ""
+        log(f"V5 渲染失败: {_e}")
+
     html = f"""<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -1453,12 +1461,14 @@ def render_dashboard(meta: dict, ratio: dict, etfs: list, macro: dict = None, co
 <div class="wrap">
   <div class="header">
     <div>
-      <h1>ETF 辅助决策看板<span class="v4tag">V4</span></h1>
+      <h1>ETF 辅助决策看板<span class="v4tag">V5.0</span></h1>
       <div class="sub">{(' · '.join(f'{n} {c["code"]}' for n, c in ETF_POOL.items()))} ｜ 数据日期 {meta['data_date']} ｜ 生成 {meta['gen_time']} ｜ 策略版本 {meta.get('strategy_version', '')} ｜ 配置 {meta.get('config_source', '')}</div>
       {src_line}
     </div>
     <div class="badges" id="badges"></div>
   </div>
+
+  {v5_html}
 
   <!-- 宏观环境：利率 / 政策 / 情绪 -->
   <div class="grid">
@@ -2331,7 +2341,7 @@ def main():
         sig["price_n"] = int(len(price_df))
         sig["index_n"] = int(len(idx_df)) if idx_df is not None else 0
         etfs.append(sig)
-        price_map_full[cfg["code"]] = price_df[["date", "close"]].copy()
+        price_map_full[cfg["code"]] = price_df.copy()
         price_rets[name] = price_df.set_index("date")["close"].pct_change().dropna().tail(250)
         w = sig.get("pe_windows") or {}
         p1 = w.get("近1年") or {}
@@ -2583,6 +2593,40 @@ def main():
     except Exception as e:
         log(f"策略研究失败: {e}")
         meta["strategy_research"] = {"error": str(e)}
+
+    # ============================================================
+    # V5.0 分层：五维评分 / 四级风控 / 五道决策检查 / 20 表落库 / 回测验证
+    # ============================================================
+    try:
+        import v5_layer
+        _v5 = v5_layer.build({
+            "config": _CFG,
+            "etfs": etfs,
+            "price_map_full": price_map_full,
+            "price_rets": price_rets,
+            "quality": meta.get("quality_report"),
+            "regime": meta.get("market_regime") or {},
+            "main_date": main_date,
+            "fee": _fee, "slippage": _slip,
+            "out_dir": str(OUT_DIR),
+            "ok_em": bool((meta.get("src_stats") or {}).get("ok_em")),
+            "holdings": {},
+        })
+        if _v5.get("error"):
+            log(f"V5 分层返回错误: {_v5['error']}")
+        meta["v5"] = _v5
+        _acc_pass = sum(1 for a in (_v5.get("acceptance") or []) if a.get("status") == "pass")
+        log("V5 分层完成: 评分 %d 只 / 风险 %s / 决策 %d 条（暂停 %d）/ 库表 %d / 验收 %d/10 通过" % (
+            len(_v5.get("score_rows") or []),
+            ((_v5.get("risk") or {}).get("risk_level") or {}).get("label"),
+            ((_v5.get("decisions") or {}).get("n_total")),
+            ((_v5.get("decisions") or {}).get("n_paused")),
+            len(((_v5.get("db") or {}).get("counts") or {})),
+            _acc_pass))
+    except Exception as e:
+        import traceback
+        log(f"V5 分层失败: {e}\n{traceback.format_exc()[:800]}")
+        meta["v5"] = {"error": f"{type(e).__name__}: {e}"}
 
     path = render_dashboard(meta, ratio, etfs, macro=macro, corr=corr)
     if path is None:
