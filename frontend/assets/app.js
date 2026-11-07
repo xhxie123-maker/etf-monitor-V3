@@ -387,7 +387,7 @@
       var html = '<div class="card"><h2>组合管理<span class="code">风险预算权重（已乘市场状态乘数）</span></h2>' +
         '<div class="kpis">' + [["目标总敞口", num(d.target_total_pct, 2) + "%"],
           ["现金（含未投）", num(100 - Number(d.target_total_pct || 0), 2) + "%"],
-          ["名义现金预留", num(d.cash_reserve_pct, 2) + "%"], ["市场乘数", num(d.state_multiplier, 2)],
+          ["市场乘数", num(d.state_multiplier, 2)],
           ["风险偏好已确认", d.configured ? '<span class="g">是</span>' : '<span class="lock">否</span>'],
           ["下单计划", d.order_plan && d.order_plan.length ? "已生成" : "未生成"]
         ].map(function (k) {
