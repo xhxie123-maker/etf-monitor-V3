@@ -1,0 +1,71 @@
+{
+  "api_version": "api-v5-2026-11-07",
+  "count": 13,
+  "endpoints": [
+    {
+      "method": "GET",
+      "path": "/api/v1/market/status",
+      "file": "market_status.json"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/etfs",
+      "file": "etfs.json"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/etfs/{code}",
+      "file": "etf_detail.json"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/etfs/{code}/signals",
+      "file": "etf_signals.json"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/rankings",
+      "file": "rankings.json"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/portfolio",
+      "file": "portfolio.json"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/portfolio/risk",
+      "file": "portfolio_risk.json"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/recommendations",
+      "file": "recommendations.json"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/backtests",
+      "file": "backtests.json"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/data/health",
+      "file": "data_health.json"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/portfolio/positions",
+      "file": "_post_positions_schema.json"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/recommendations/{id}/review",
+      "file": "_post_review_schema.json"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/backtests/run",
+      "file": "_post_backtest_schema.json"
+    }
+  ]
+}
