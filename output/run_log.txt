@@ -664,3 +664,89 @@
 [2026-11-06 21:53:04] 红利低波ETF: 指数历史已积累 5062 条 -> index_history_H30269.csv
 [2026-11-06 21:53:04] 组合相关性(近250个交易日日收益): {'红利ETF×银行ETF': 0.513, '红利ETF×煤炭ETF': 0.73, '红利ETF×自由现金流ETF': 0.75, '红利ETF×红利低波ETF': 0.75, '银行ETF×煤炭ETF': 0.202, '银行ETF×自由现金流ETF': 0.236, '银行ETF×红利低波ETF': 0.843, '煤炭ETF×自由现金流ETF': 0.535, '煤炭ETF×红利低波ETF': 0.428, '自由现金流ETF×红利低波ETF': 0.542, '_n': 250}
 [2026-11-06 21:53:04] 看板已生成: /home/runner/work/etf-monitor-V3/etf-monitor-V3/output/etf_dashboard.html
+[2026-11-07 10:00:46] [数据源] 东财指数行情 2次尝试均失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-07 10:00:46] 东财指数行情不可用，尝试新浪源
+[2026-11-07 10:02:01] 官方股息率 XLS 000300 20 期（截至 2026-11-06，不写积累库PE）
+[2026-11-07 10:02:16] [数据源] 东财指数行情 2次尝试均失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-07 10:02:16] 东财指数行情不可用，尝试新浪源
+[2026-11-07 10:02:17] 沪深300ETF: 收盘 4.124 | PE 13.13 分位 1Y 7.6% / 3Y 60.7% / 5Y 66.1% (n=250/750/1250) | 官方PE 3815条 | 决策 35分[100%] 状态「暂停新增」| 闸门 warn（数据源降级）
+[2026-11-07 10:02:17] 沪深300ETF: 价格历史已积累 1212 条 -> price_history_510300.csv
+[2026-11-07 10:02:17] 沪深300ETF: 指数历史已积累 6025 条 -> index_history_000300.csv
+[2026-11-07 10:02:20] [数据源] 东财ETF行情 2次尝试均失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-07 10:02:20] 东财ETF行情不可用，尝试腾讯源
+[2026-11-07 10:02:27] 官方股息率 XLS 932000 20 期（截至 2026-11-06，不写积累库PE）
+[2026-11-07 10:02:41] [数据源] 东财指数行情 2次尝试均失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-07 10:02:41] 东财指数行情不可用，尝试新浪源
+[2026-11-07 10:02:41] [数据源] 新浪指数行情 1次尝试均失败: KeyError: 'date'
+[2026-11-07 10:02:41] 新浪指数行情不可用，尝试腾讯源
+[2026-11-07 10:02:42] [数据源] 腾讯指数行情 1次尝试均失败: IndexError: list index out of range
+[2026-11-07 10:02:42] 中证A500ETF 指数日线缺失，停止生成日频PE估算，避免复权ETF价格冒充指数点位
+[2026-11-07 10:02:42] 中证A500ETF 日频PE序列不足(样本0)，分位不可用
+[2026-11-07 10:02:42] 中证A500ETF: 收盘 1.049 | PE 35.97 分位 1Y None% / 3Y None% / 5Y None% (n=None/None/None) | 官方PE 889条 | 决策 35分[100%] 状态「暂停新增」| 闸门 warn（数据源降级）
+[2026-11-07 10:02:42] 中证A500ETF: 价格历史已积累 479 条 -> price_history_512050.csv
+[2026-11-07 10:02:46] [数据源] 东财ETF行情 2次尝试均失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-07 10:02:46] 东财ETF行情不可用，尝试腾讯源
+[2026-11-07 10:03:06] 官方股息率 XLS 000091 20 期（截至 2026-11-06，不写积累库PE）
+[2026-11-07 10:03:21] [数据源] 东财指数行情 2次尝试均失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-07 10:03:21] 东财指数行情不可用，尝试新浪源
+[2026-11-07 10:03:22] 国债ETF: 收盘 141.449 | PE 21.9 分位 1Y 0.8% / 3Y 57.1% / 5Y 74.3% (n=250/750/1250) | 官方PE 3813条 | 决策 80分[100%] 状态「允许分批加仓」| 闸门 warn（数据源降级）
+[2026-11-07 10:03:22] 国债ETF: 价格历史已积累 3309 条 -> price_history_511010.csv
+[2026-11-07 10:03:22] 国债ETF: 指数历史已积累 3788 条 -> index_history_000091.csv
+[2026-11-07 10:03:26] [数据源] 东财ETF行情 2次尝试均失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-07 10:03:26] 东财ETF行情不可用，尝试腾讯源
+[2026-11-07 10:03:58] [数据源] 东财指数行情 2次尝试均失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-07 10:03:58] 东财指数行情不可用，尝试新浪源
+[2026-11-07 10:03:58] [数据源] 新浪指数行情 1次尝试均失败: KeyError: 'date'
+[2026-11-07 10:03:58] 新浪指数行情不可用，尝试腾讯源
+[2026-11-07 10:03:59] [数据源] 腾讯指数行情 1次尝试均失败: ValueError: time data 'i' does not match format '%Y-%m-%d'
+[2026-11-07 10:03:59] 货币ETF 指数日线缺失，停止生成日频PE估算，避免复权ETF价格冒充指数点位
+[2026-11-07 10:03:59] 货币ETF 日频PE序列不足(样本0)，分位不可用
+[2026-11-07 10:03:59] 货币ETF: 收盘 100.954 | PE None 分位 1Y None% / 3Y None% / 5Y None% (n=None/None/None) | 官方PE 0条 | 决策 100分[67%] 状态「持有观察」| 闸门 warn（估值数据不足（官方PE 0 条）；数据源降级）
+[2026-11-07 10:03:59] 货币ETF: 价格历史已积累 3238 条 -> price_history_511880.csv
+[2026-11-07 10:04:03] [数据源] 东财ETF行情 2次尝试均失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-07 10:04:03] 东财ETF行情不可用，尝试腾讯源
+[2026-11-07 10:04:35] [数据源] 东财指数行情 2次尝试均失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-07 10:04:35] 东财指数行情不可用，尝试新浪源
+[2026-11-07 10:04:36] [数据源] 新浪指数行情 1次尝试均失败: KeyError: 'date'
+[2026-11-07 10:04:36] 新浪指数行情不可用，尝试腾讯源
+[2026-11-07 10:04:37] [数据源] 腾讯指数行情 1次尝试均失败: ValueError: time data 'i' does not match format '%Y-%m-%d'
+[2026-11-07 10:04:37] 黄金ETF 指数日线缺失，停止生成日频PE估算，避免复权ETF价格冒充指数点位
+[2026-11-07 10:04:37] 黄金ETF 日频PE序列不足(样本0)，分位不可用
+[2026-11-07 10:04:37] 黄金ETF: 收盘 8.253 | PE None 分位 1Y None% / 3Y None% / 5Y None% (n=None/None/None) | 官方PE 0条 | 决策 38分[67%] 状态「暂停新增」| 闸门 warn（估值数据不足（官方PE 0 条）；数据源降级）
+[2026-11-07 10:04:37] 黄金ETF: 价格历史已积累 3227 条 -> price_history_518880.csv
+[2026-11-07 10:04:40] [数据源] 东财ETF行情 2次尝试均失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-07 10:04:40] 东财ETF行情不可用，尝试腾讯源
+[2026-11-07 10:04:50] 官方股息率 XLS 000922 20 期（截至 2026-11-06，不写积累库PE）
+[2026-11-07 10:04:53] 红利ETF: 收盘 1.369 | PE 8.92 分位 1Y 90.8% / 3Y 96.9% / 5Y 98.2% (n=250/750/1250) | 官方PE 3813条 | 决策 42分[100%] 状态「持有观察」| 闸门 warn（数据源降级）
+[2026-11-07 10:04:53] 红利ETF: 价格历史已积累 1666 条 -> price_history_515180.csv
+[2026-11-07 10:04:53] 红利ETF: 指数历史已积累 5306 条 -> index_history_000922.csv
+[2026-11-07 10:04:56] [数据源] 东财ETF行情 2次尝试均失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-07 10:04:56] 东财ETF行情不可用，尝试腾讯源
+[2026-11-07 10:05:05] 官方股息率 XLS 399986 20 期（截至 2026-11-06，不写积累库PE）
+[2026-11-07 10:05:08] 银行ETF: 收盘 1.457 | PE 7.32 分位 1Y 81.1% / 3Y 93.1% / 5Y 95.8% (n=250/750/1250) | 官方PE 2931条 | 决策 60分[100%] 状态「持有观察」| 闸门 warn（数据源降级）
+[2026-11-07 10:05:08] 银行ETF: 价格历史已积累 1320 条 -> price_history_516310.csv
+[2026-11-07 10:05:08] 银行ETF: 指数历史已积累 5306 条 -> index_history_399986.csv
+[2026-11-07 10:05:12] [数据源] 东财ETF行情 2次尝试均失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-07 10:05:12] 东财ETF行情不可用，尝试腾讯源
+[2026-11-07 10:05:22] 官方股息率 XLS 000820 20 期（截至 2026-11-06，不写积累库PE）
+[2026-11-07 10:05:25] 煤炭ETF: 收盘 1.169 | PE 15.93 分位 1Y 37.3% / 3Y 79.2% / 5Y 87.5% (n=250/750/1250) | 官方PE 3813条 | 决策 34分[100%] 状态「暂停新增」| 闸门 warn（数据源降级）
+[2026-11-07 10:05:25] 煤炭ETF: 价格历史已积累 1622 条 -> price_history_515220.csv
+[2026-11-07 10:05:25] 煤炭ETF: 指数历史已积累 5306 条 -> index_history_000820.csv
+[2026-11-07 10:05:29] [数据源] 东财ETF行情 2次尝试均失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-07 10:05:29] 东财ETF行情不可用，尝试腾讯源
+[2026-11-07 10:05:48] [数据源] 东财指数行情 2次尝试均失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-07 10:05:48] 东财指数行情不可用，尝试新浪源
+[2026-11-07 10:05:55] 自由现金流ETF: 收盘 1.157 | PE 12.97 分位 1Y 9.2% / 3Y 36.6% / 5Y 21.9% (n=250/750/1250) | 官方PE 2829条 | 决策 66分[100%] 状态「正常定投」| 闸门 warn（数据源降级）
+[2026-11-07 10:05:55] 自由现金流ETF: 价格历史已积累 412 条 -> price_history_159201.csv
+[2026-11-07 10:05:55] 自由现金流ETF: 指数历史已积累 537 条 -> index_history_980092.csv
+[2026-11-07 10:06:01] [数据源] 东财ETF行情 2次尝试均失败: ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[2026-11-07 10:06:01] 东财ETF行情不可用，尝试腾讯源
+[2026-11-07 10:17:10] 红利低波ETF: 收盘 1.214 | PE 8.46 分位 1Y 94.8% / 3Y 98.3% / 5Y 99.0% (n=250/750/1250) | 官方PE 3283条 | 决策 60分[100%] 状态「持有观察」| 闸门 warn（数据源降级）
+[2026-11-07 10:17:10] 红利低波ETF: 价格历史已积累 700 条 -> price_history_563020.csv
+[2026-11-07 10:17:10] 红利低波ETF: 指数历史已积累 5064 条 -> index_history_H30269.csv
+[2026-11-07 10:17:10] 组合相关性(近250个交易日日收益): {'沪深300ETF×中证A500ETF': 0.977, '沪深300ETF×国债ETF': -0.128, '沪深300ETF×货币ETF': -0.044, '沪深300ETF×黄金ETF': 0.465, '沪深300ETF×红利ETF': 0.269, '沪深300ETF×银行ETF': -0.179, '沪深300ETF×煤炭ETF': 0.13, '沪深300ETF×自由现金流ETF': 0.525, '沪深300ETF×红利低波ETF': 0.018, '中证A500ETF×国债ETF': -0.111, '中证A500ETF×货币ETF': -0.062, '中证A500ETF×黄金ETF': 0.475, '中证A500ETF×红利ETF': 0.2, '中证A500ETF×银行ETF': -0.291, '中证A500ETF×煤炭ETF': 0.085, '中证A500ETF×自由现金流ETF': 0.488, '中证A500ETF×红利低波ETF': -0.083, '国债ETF×货币ETF': 0.014, '国债ETF×黄金ETF': 0.0, '国债ETF×红利ETF': 0.001, '国债ETF×银行ETF': 0.006, '国债ETF×煤炭ETF': 0.027, '国债ETF×自由现金流ETF': -0.049, '国债ETF×红利低波ETF': 0.047, '货币ETF×黄金ETF': -0.002, '货币ETF×红利ETF': -0.033, '货币ETF×银行ETF': 0.026, '货币ETF×煤炭ETF': 0.006, '货币ETF×自由现金流ETF': -0.04, '货币ETF×红利低波ETF': 0.008, '黄金ETF×红利ETF': 0.363, '黄金ETF×银行ETF': 0.077, '黄金ETF×煤炭ETF': 0.148, '黄金ETF×自由现金流ETF': 0.556, '黄金ETF×红利低波ETF': 0.258, '红利ETF×银行ETF': 0.513, '红利ETF×煤炭ETF': 0.73, '红利ETF×自由现金流ETF': 0.75, '红利ETF×红利低波ETF': 0.75, '银行ETF×煤炭ETF': 0.202, '银行ETF×自由现金流ETF': 0.236, '银行ETF×红利低波ETF': 0.843, '煤炭ETF×自由现金流ETF': 0.535, '煤炭ETF×红利低波ETF': 0.428, '自由现金流ETF×红利低波ETF': 0.542, '_n': 250}
+[2026-11-07 10:17:10] 组合风险引擎: 年化波动 9.838% / MDD -7.851% / 压力情景 6 个
+[2026-11-07 10:17:10] 三层纪律: 维持 / 限制加仓 / 无触发
+[2026-11-07 10:17:29] ETF质量评估: 10 只 / 持仓穿透重合对 20 个
+[2026-11-07 10:17:29] 策略研究: 2 只核心标的六基准+滚动验证完成
+[2026-11-07 10:17:29] 看板已生成: /home/runner/work/etf-monitor-V3/etf-monitor-V3/output/etf_dashboard.html
