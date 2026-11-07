@@ -347,9 +347,21 @@
           })) + stamp(r) + "</div>";
       items.forEach(function (x) {
         if (x.error) return;
-        var la = x.lookahead || {}, ro = (x.rolling_oos || {}), se = (x.sensitivity || {});
+        var la = x.lookahead || {}, ro = x.rolling_oos || null, se = x.sensitivity || null;
         var rec = x.recovery;
         var recLine = recTxt(rec);
+        html += '<div class="grid2"><div class="card"><h2>' + esc(x.code) + ' · 防作弊校验</h2><div class="mini">' +
+          "防前视：比对 " + esc(la.checked === undefined ? "—" : la.checked) + " 日，不一致 " +
+          esc(la.mismatches === undefined ? "—" : la.mismatches) + " 处（须为 0）｜结果 " +
+          (la.ok ? '<span class="g">通过</span>' : '<span class="r">未通过</span>') +
+          "<br>回撤恢复：" + esc(recLine) + "</div></div>";
+        if (!ro || !se) {
+          html += '<div class="card"><h2>' + esc(x.code) + ' · 滚动样本外</h2><div class="mini">' +
+            "该标的本轮未执行深度回测（CI 默认只对主标的 510300 跑 --deep），" +
+            "滚动样本外与参数敏感性不适用；本地可执行 <code>python backtest.py output/price_history_" +
+            esc(x.code) + ".csv --deep</code> 复核。</div></div></div>";
+          return;
+        }
         var folds = (ro.folds || []).map(function (f) {
           var v = (f.test_cagr === undefined ? f.ann_pct : f.test_cagr);
           return sgn(v) + "%";
@@ -357,12 +369,7 @@
         var npos = (ro.positive_folds === undefined ? ro.n_positive : ro.positive_folds);
         var nfold = (ro.n_folds === undefined ? (ro.folds || []).length : ro.n_folds);
         var stable = se.stable === undefined ? (se.verdict === "稳健") : se.stable;
-        html += '<div class="grid2"><div class="card"><h2>' + esc(x.code) + ' · 防作弊校验</h2><div class="mini">' +
-          "防前视：比对 " + esc(la.checked === undefined ? "—" : la.checked) + " 日，不一致 " +
-          esc(la.mismatches === undefined ? "—" : la.mismatches) + " 处（须为 0）｜结果 " +
-          (la.ok ? '<span class="g">通过</span>' : '<span class="r">未通过</span>') +
-          "<br>回撤恢复：" + esc(recLine) + "</div></div>" +
-          '<div class="card"><h2>' + esc(x.code) + ' · 滚动样本外</h2><div class="mini">' +
+        html += '<div class="card"><h2>' + esc(x.code) + ' · 滚动样本外</h2><div class="mini">' +
           esc(nfold) + " 折样本外收益：" + folds +
           "｜样本外为正 " + esc(npos === undefined ? "—" : npos) + "/" + esc(nfold) +
           "<br>参数敏感性：" + (stable ? '<span class="g">稳健</span>' : '<span class="r">不稳定</span>') +
