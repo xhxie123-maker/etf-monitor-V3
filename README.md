@@ -7,7 +7,8 @@
 
 ## 云端看板（手机/电脑随时看，无需开电脑）
 
-**看板网址：https://xhxie123-maker.github.io/etf-monitor-V3/output/etf_dashboard.html**（仓库已由 etf-monitor-V2 更名，旧链接 404）
+**看板网址：https://xhxie123-maker.github.io/etf-monitor-V3/output/etf_dashboard.html**
+
 
 - 由 GitHub Actions 每个工作日 15:35（北京时间）自动更新，更新后自动发布到该网址
 - 手机、轻薄本打开网址即看全部指标与决策简报
