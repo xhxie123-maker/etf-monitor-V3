@@ -141,7 +141,12 @@
                   return '<div class="kpi"><div class="k">' + esc(k[0]) + '</div><div class="v">' +
                     esc(k[1]) + '</div><div class="s">' + esc(k[2]) + "</div></div>";
                 }).join("") + "</div>" + stamp(m) + "</div>";
+              var navRows = pd.hypothetical_nav || [];
+              html += '<div class="card"><h2>假设组合净值（折线）</h2>' +
+                '<div id="ch_nav" style="width:100%;height:260px"></div>' +
+                '<div class="mini">' + esc(pd.hypothetical_nav_note || "用风险预算权重回放近 260 日的假设净值，非实盘。") + "</div></div>";
               html += '<div class="grid2"><div class="card"><h2>评分前五</h2>' +
+                '<div id="ch_top" style="width:100%;height:220px"></div>' +
                 tbl(["排名", "代码", "名称", "总分", "信号"], top.map(function (x) {
                   return "<tr><td>" + esc(x.rank) + "</td><td>" + esc(x.code) + "</td><td>" +
                     esc(x.name) + "</td><td>" + num(x.total_score, 1) + "</td><td>" +
@@ -162,6 +167,16 @@
                 (rd.warnings && rd.warnings.length ? '<div class="warn">' + rd.warnings.map(esc).join("<br>") + "</div>" : "") +
                 "</div>";
               view.innerHTML = html;
+              if (navRows.length) {
+                Charts.line("ch_nav",
+                  navRows.map(function (r) { return r.date; }),
+                  [{ name: "假设净值", data: navRows.map(function (r) { return r.nav; }) }]);
+              }
+              if (top.length) {
+                Charts.bar("ch_top",
+                  top.map(function (x) { return x.code; }),
+                  [{ name: "总分", data: top.map(function (x) { return x.total_score; }) }]);
+              }
             }, function (e) { fail(view, e); });
           }, function (e) { fail(view, e); });
         }, function (e) { fail(view, e); });
@@ -184,7 +199,9 @@
           return '<div class="kpi"><div class="k">' + esc(k[0]) + '</div><div class="v">' + esc(k[1]) +
             '</div><div class="s">' + esc(k[2]) + "</div></div>";
         }).join("") + "</div>" + stamp(m) + "</div>";
-      html += '<div class="grid2"><div class="card"><h2>三项分项得分</h2><table class="t"><tbody>' +
+      html += '<div class="grid2"><div class="card"><h2>三项分项得分</h2>' +
+        '<div id="ch_reg" style="width:100%;height:230px"></div>' +
+        '<table class="t"><tbody>' +
         parts.map(function (p) {
           return '<tr><td style="width:70px">' + p[0] + '</td><td style="width:46px">' + num(p[1], 1) +
             "</td><td>" + bar(p[1], 100, p[1] >= 60 ? "g" : (p[1] >= 40 ? "a" : "r")) +
@@ -196,6 +213,9 @@
         "</div>" + (d.risk_state ? '<div class="mini">组合层面风险等级：' + esc(d.risk_state) +
           "｜熔断：" + esc(d.circuit_breaker) + "</div>" : "") + "</div></div>";
       view.innerHTML = html;
+      Charts.bar("ch_reg",
+        parts.map(function (p) { return p[0]; }),
+        [{ name: "分项得分", data: parts.map(function (p) { return p[1]; }) }]);
     }, function (e) { fail(view, e); });
   }
 
@@ -294,8 +314,13 @@
         return;
       }
       var A = st.A || {}, B = st.B || {}, C = st.C || {}, D = st.D || {};
+      var countA = A.counts || {};
+      var chartCats = ["A合格", "A观察", "A淘汰", "B通过", "C入选", "D投资%"];
+      var chartVals = [countA.合格 || 0, countA.观察 || 0, countA.淘汰 || 0,
+        B.n_pass || 0, (C.selected || []).length, D.invested_pct || 0];
       var html = '<div class="card"><h2>四策略中心<span class="code">A 质量筛选 / B 趋势 / C 多周期动量 / D 多资产稳健</span></h2>' +
         '<div class="mini">版本 ' + esc(st.version || "—") + "｜策略规则随版本发布，修改留痕（strategy_version 表）</div>" +
+        '<div id="ch_strat" style="width:100%;height:240px"></div>' +
         '<div class="kpis">' + [["A 合格", (A.counts || {}).合格 || 0], ["A 观察", (A.counts || {}).观察 || 0],
           ["A 淘汰", (A.counts || {}).淘汰 || 0], ["B 通过", B.n_pass || 0],
           ["C 入选", (C.selected || []).length], ["D 投资比例", num(D.invested_pct, 2) + "%"]
@@ -327,12 +352,15 @@
         "%｜风险乘数 " + num(D.risk_multiplier, 2) + "｜模板 " + esc(D.template || "稳健") +
         "<br>示例权重仅为测试示例、非个人建议；战略配置与战术择时分离。</div></div></div>";
       view.innerHTML = html;
+      Charts.bar("ch_strat", chartCats,
+        [{ name: "计数/比例", data: chartVals }]);
     }, function (e) { fail(view, e); });
   }
 
   function backtest(view) {
     getJSON("backtests", function (r) {
       var items = (r.data || {}).items || [];
+      var deepCharts = [];
       var html = '<div class="card"><h2>回测中心<span class="code">含防前视、滚动样本外与参数敏感性</span></h2>' +
         '<div class="mini">结论如实呈现，不做美化：若策略年化低于买入持有，即为该样本上的真实结论。</div>' +
         tbl(["代码", "样本数", "策略年化", "持有年化", "策略 MDD", "持有 MDD", "Sharpe", "Sortino", "Calmar", "CVaR95", "换手/年", "成本累计"],
@@ -362,21 +390,43 @@
             esc(x.code) + ".csv --deep</code> 复核。</div></div></div>";
           return;
         }
-        var folds = (ro.folds || []).map(function (f) {
-          var v = (f.test_cagr === undefined ? f.ann_pct : f.test_cagr);
-          return sgn(v) + "%";
-        }).join(" / ") || "—";
+        var folds = ro.folds || [];
+        var foldId = "ch_fold_" + x.code;
+        var sensId = "ch_sens_" + x.code;
+        html += '<div class="card"><h2>' + esc(x.code) + ' · 滚动样本外</h2>' +
+          '<div id="' + foldId + '" style="width:100%;height:220px"></div>' +
+          '<div id="' + sensId + '" style="width:100%;height:220px;margin-top:10px"></div><div class="mini">';
+        var foldLabels = [];
+        var foldVals = [];
+        for (var fi = 0; fi < folds.length; fi++) {
+          foldLabels.push("折" + (fi + 1));
+          var fv = folds[fi].test_cagr === undefined ? folds[fi].ann_pct : folds[fi].test_cagr;
+          foldVals.push(fv);
+        }
+        deepCharts.push({ id: foldId, cats: foldLabels, vals: foldVals, name: "折测试验年化%" });
+        var grid = se.grid || [];
+        var sensLabels = [];
+        var sensVals = [];
+        for (var gi = 0; gi < grid.length; gi++) {
+          sensLabels.push(String(grid[gi].params));
+          sensVals.push(grid[gi].ann);
+        }
+        deepCharts.push({ id: sensId, cats: sensLabels, vals: sensVals, name: "参数敏感性年化%" });
         var npos = (ro.positive_folds === undefined ? ro.n_positive : ro.positive_folds);
         var nfold = (ro.n_folds === undefined ? (ro.folds || []).length : ro.n_folds);
         var stable = se.stable === undefined ? (se.verdict === "稳健") : se.stable;
-        html += '<div class="card"><h2>' + esc(x.code) + ' · 滚动样本外</h2><div class="mini">' +
-          esc(nfold) + " 折样本外收益：" + folds +
+        html += esc(nfold) + " 折样本外收益：" + foldVals.map(function (v) { return sgn(v) + "%"; }).join(" / ") +
           "｜样本外为正 " + esc(npos === undefined ? "—" : npos) + "/" + esc(nfold) +
           "<br>参数敏感性：" + (stable ? '<span class="g">稳健</span>' : '<span class="r">不稳定</span>') +
           "（年化区间 " + num(se.ann_min, 2) + "~" + num(se.ann_max, 2) + "%，标准差 " + num(se.ann_std, 2) + "pp）" +
           "<br>" + esc(ro.note || "") + "</div></div></div>";
       });
       view.innerHTML = html;
+      for (var di = 0; di < deepCharts.length; di++) {
+        (function (c) {
+          Charts.bar(c.id, c.cats, [{ name: c.name, data: c.vals }]);
+        })(deepCharts[di]);
+      }
     }, function (e) { fail(view, e); });
   }
 
@@ -396,6 +446,7 @@
         (d.configured ? "" : '<div class="warn">未确认投资期限 / 最大可承受回撤 / 资金规模，按 PRD 15.4 只输出权重与排名，不输出目标金额与数量。缺口：' +
           esc(listTxt(d.unlock_need)) + "</div>") + stamp(p) + "</div>";
       html += '<div class="grid2"><div class="card"><h2>目标权重</h2>' +
+        '<div id="ch_w" style="width:100%;height:260px"></div>' +
         tbl(["代码", "权重", "", "风险预算", "σ"], Object.keys(w).sort(function (a, b) { return w[b] - w[a]; }).map(function (k) {
           return "<tr><td>" + esc(k) + "</td><td style='width:60px'>" + num(w[k], 2) + "%</td><td style='width:120px'>" +
             bar(w[k], 35, "b") + "</td><td>" + num((d.risk_budget_pct || {})[k], 2) + "</td><td class='d'>" +
@@ -412,6 +463,9 @@
         '<div class="mini">整手公式 Q = floor(B/(P×L))×L；费用与滑点计入每手全成本；剔除标的：' +
         esc(listTxt(d.excluded)) + "</div></div></div>";
       view.innerHTML = html;
+      var wCodes = Object.keys(w).sort(function (a, b) { return w[b] - w[a]; });
+      Charts.bar("ch_w", wCodes,
+        [{ name: "目标权重%", data: wCodes.map(function (k) { return w[k]; }) }]);
     }, function (e) { fail(view, e); });
   }
 
@@ -441,9 +495,11 @@
           return "<tr><td>" + esc(x.end_date) + "</td><td class='r'>" + num(x.loss_pct) + "%</td><td class='d'>" +
             esc(x.window_days) + " 日</td></tr>";
         })) + '<div class="mini">真实联合收益滑窗，非假设情景。</div></div>';
-      html += '<div class="card"><h2>极端情景</h2>' + tbl(["情景", "组合损失"], ext.map(function (x) {
-        return "<tr><td>" + esc(x.name) + "</td><td class='r'>" + num(x.loss_pct) + "%</td></tr>";
-      })) + "</div>";
+      html += '<div class="card"><h2>极端情景</h2>' +
+        '<div id="ch_ext" style="width:100%;height:260px"></div>' +
+        tbl(["情景", "组合损失"], ext.map(function (x) {
+          return "<tr><td>" + esc(x.name) + "</td><td class='r'>" + num(x.loss_pct) + "%</td></tr>";
+        })) + "</div>";
       html += '<div class="card"><h2>蒙特卡洛（含 t / 自助法）</h2><div class="mini">' +
         "normal：p05 " + num(((mc.generators || {}).normal || {}).p05_pct) + "%｜t：p05 " +
         num(((mc.generators || {}).t || {}).p05_pct) + "%｜bootstrap：p05 " +
@@ -458,6 +514,11 @@
           return "· " + esc(k) + "：" + esc(typeof v === "object" && v !== null ? JSON.stringify(v) : v);
         }).join("<br>") + "</div></div>";
       view.innerHTML = html;
+      if (ext.length) {
+        Charts.bar("ch_ext",
+          ext.map(function (x) { return x.name; }),
+          [{ name: "组合损失%", data: ext.map(function (x) { return x.loss_pct; }) }]);
+      }
     }, function (e) { fail(view, e); });
   }
 
