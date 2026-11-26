@@ -1380,3 +1380,104 @@
 [2026-11-25 16:50:38] 策略研究: 2 只核心标的六基准+滚动验证完成
 [2026-11-25 16:50:41] V5 分层完成: 评分 10 只 / 风险 低风险 / 决策 10 条（暂停 0）/ 库表 20 / 验收 9/10 通过
 [2026-11-25 16:50:41] 看板已生成: /home/runner/work/etf-monitor-V3/etf-monitor-V3/output/etf_dashboard.html
+[2026-11-26 16:44:58] [数据源] 东财指数行情 2次尝试均失败: AttributeError: index_zh_a_hist 已在 1.20.44 更名为 index_zh_hist_em，请改用 ak.index_zh_hist_em；参数与返回的列也可能有调整，用 ak.interface_info("index_zh_hist
+[2026-11-26 16:44:58] 东财指数行情不可用，尝试新浪源
+[2026-11-26 16:44:58] [数据源] 新浪指数行情 1次尝试均失败: AttributeError: stock_zh_index_daily 已在 1.20.44 更名为 index_zh_daily_sina，请改用 ak.index_zh_daily_sina；参数与返回的列也可能有调整，用 ak.interface_info("in
+[2026-11-26 16:44:58] 新浪指数行情不可用，尝试腾讯源
+[2026-11-26 16:44:58] [数据源] 腾讯指数行情 1次尝试均失败: AttributeError: stock_zh_index_daily_tx 已在 1.20.44 更名为 index_zh_daily_tx，请改用 ak.index_zh_daily_tx；参数与返回的列也可能有调整，用 ak.interface_info("ind
+[2026-11-26 16:45:03] 创业板红利比计算失败（创业板指/中证红利行情缺失）
+[2026-11-26 16:45:03] [数据源] 10Y国债收益率获取失败: AttributeError: bond_zh_us_rate 已在 1.20.41 更名为 bond_zh_us_yield_em，请改用 ak.bond_zh_us_yield_em；参数与返回的列也可能有调整，用 ak.interface_info("bond_zh
+[2026-11-26 16:45:03] [数据源] LPR获取失败: AttributeError: macro_china_lpr 已在 1.20.48 更名为 interest_rate_lpr_em，请改用 ak.interest_rate_lpr_em；参数与返回的列也可能有调整，用 ak.interface_info("inter
+[2026-11-26 16:45:03] [数据源] 两市成交额获取失败: AttributeError: stock_zh_index_daily_tx 已在 1.20.44 更名为 index_zh_daily_tx，请改用 ak.index_zh_daily_tx；参数与返回的列也可能有调整，用 ak.interface_info("ind
+[2026-11-26 16:45:10] [数据源] 东财指数行情 2次尝试均失败: AttributeError: index_zh_a_hist 已在 1.20.44 更名为 index_zh_hist_em，请改用 ak.index_zh_hist_em；参数与返回的列也可能有调整，用 ak.interface_info("index_zh_hist
+[2026-11-26 16:45:10] 东财指数行情不可用，尝试新浪源
+[2026-11-26 16:45:10] [数据源] 新浪指数行情 1次尝试均失败: AttributeError: stock_zh_index_daily 已在 1.20.44 更名为 index_zh_daily_sina，请改用 ak.index_zh_daily_sina；参数与返回的列也可能有调整，用 ak.interface_info("in
+[2026-11-26 16:45:10] 新浪指数行情不可用，尝试腾讯源
+[2026-11-26 16:45:10] [数据源] 腾讯指数行情 1次尝试均失败: AttributeError: stock_zh_index_daily_tx 已在 1.20.44 更名为 index_zh_daily_tx，请改用 ak.index_zh_daily_tx；参数与返回的列也可能有调整，用 ak.interface_info("ind
+[2026-11-26 16:45:10] 沪深300ETF 指数日线缺失，停止生成日频PE估算，避免复权ETF价格冒充指数点位
+[2026-11-26 16:45:10] 沪深300ETF 日频PE序列不足(样本0)，分位不可用
+[2026-11-26 16:45:10] 沪深300ETF: 收盘 3.959 | PE 12.9 分位 1Y None% / 3Y None% / 5Y None% (n=None/None/None) | 官方PE 3828条 | 决策 35分[100%] 状态「暂停新增」| 闸门 warn（数据源降级）
+[2026-11-26 16:45:10] 沪深300ETF: 价格历史已积累 1226 条 -> price_history_510300.csv
+[2026-11-26 16:45:13] [数据源] 东财ETF行情 2次尝试均失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
+[2026-11-26 16:45:13] 东财ETF行情不可用，尝试腾讯源
+[2026-11-26 16:45:20] [数据源] 东财指数行情 2次尝试均失败: AttributeError: index_zh_a_hist 已在 1.20.44 更名为 index_zh_hist_em，请改用 ak.index_zh_hist_em；参数与返回的列也可能有调整，用 ak.interface_info("index_zh_hist
+[2026-11-26 16:45:20] 东财指数行情不可用，尝试新浪源
+[2026-11-26 16:45:20] [数据源] 新浪指数行情 1次尝试均失败: AttributeError: stock_zh_index_daily 已在 1.20.44 更名为 index_zh_daily_sina，请改用 ak.index_zh_daily_sina；参数与返回的列也可能有调整，用 ak.interface_info("in
+[2026-11-26 16:45:20] 新浪指数行情不可用，尝试腾讯源
+[2026-11-26 16:45:20] [数据源] 腾讯指数行情 1次尝试均失败: AttributeError: stock_zh_index_daily_tx 已在 1.20.44 更名为 index_zh_daily_tx，请改用 ak.index_zh_daily_tx；参数与返回的列也可能有调整，用 ak.interface_info("ind
+[2026-11-26 16:45:20] 中证A500ETF 指数日线缺失，停止生成日频PE估算，避免复权ETF价格冒充指数点位
+[2026-11-26 16:45:20] 中证A500ETF 日频PE序列不足(样本0)，分位不可用
+[2026-11-26 16:45:20] 中证A500ETF: 收盘 0.986 | PE 31.25 分位 1Y None% / 3Y None% / 5Y None% (n=None/None/None) | 官方PE 902条 | 决策 55分[100%] 状态「暂停新增」| 闸门 warn（数据源降级）
+[2026-11-26 16:45:20] 中证A500ETF: 价格历史已积累 492 条 -> price_history_512050.csv
+[2026-11-26 16:45:24] [数据源] 东财ETF行情 2次尝试均失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
+[2026-11-26 16:45:24] 东财ETF行情不可用，尝试腾讯源
+[2026-11-26 16:45:35] [数据源] 东财指数行情 2次尝试均失败: AttributeError: index_zh_a_hist 已在 1.20.44 更名为 index_zh_hist_em，请改用 ak.index_zh_hist_em；参数与返回的列也可能有调整，用 ak.interface_info("index_zh_hist
+[2026-11-26 16:45:35] 东财指数行情不可用，尝试新浪源
+[2026-11-26 16:45:35] [数据源] 新浪指数行情 1次尝试均失败: AttributeError: stock_zh_index_daily 已在 1.20.44 更名为 index_zh_daily_sina，请改用 ak.index_zh_daily_sina；参数与返回的列也可能有调整，用 ak.interface_info("in
+[2026-11-26 16:45:35] 新浪指数行情不可用，尝试腾讯源
+[2026-11-26 16:45:35] [数据源] 腾讯指数行情 1次尝试均失败: AttributeError: stock_zh_index_daily_tx 已在 1.20.44 更名为 index_zh_daily_tx，请改用 ak.index_zh_daily_tx；参数与返回的列也可能有调整，用 ak.interface_info("ind
+[2026-11-26 16:45:35] 国债ETF 指数日线缺失，停止生成日频PE估算，避免复权ETF价格冒充指数点位
+[2026-11-26 16:45:35] 国债ETF 日频PE序列不足(样本0)，分位不可用
+[2026-11-26 16:45:36] 国债ETF: 收盘 141.386 | PE 19.62 分位 1Y None% / 3Y None% / 5Y None% (n=None/None/None) | 官方PE 3826条 | 决策 80分[100%] 状态「允许分批加仓」| 闸门 warn（数据源降级）
+[2026-11-26 16:45:36] 国债ETF: 价格历史已积累 3323 条 -> price_history_511010.csv
+[2026-11-26 16:45:39] [数据源] 东财ETF行情 2次尝试均失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
+[2026-11-26 16:45:39] 东财ETF行情不可用，尝试腾讯源
+[2026-11-26 16:45:49] [数据源] 东财指数行情 2次尝试均失败: AttributeError: index_zh_a_hist 已在 1.20.44 更名为 index_zh_hist_em，请改用 ak.index_zh_hist_em；参数与返回的列也可能有调整，用 ak.interface_info("index_zh_hist
+[2026-11-26 16:45:49] 东财指数行情不可用，尝试新浪源
+[2026-11-26 16:45:49] [数据源] 新浪指数行情 1次尝试均失败: AttributeError: stock_zh_index_daily 已在 1.20.44 更名为 index_zh_daily_sina，请改用 ak.index_zh_daily_sina；参数与返回的列也可能有调整，用 ak.interface_info("in
+[2026-11-26 16:45:49] 新浪指数行情不可用，尝试腾讯源
+[2026-11-26 16:45:49] [数据源] 腾讯指数行情 1次尝试均失败: AttributeError: stock_zh_index_daily_tx 已在 1.20.44 更名为 index_zh_daily_tx，请改用 ak.index_zh_daily_tx；参数与返回的列也可能有调整，用 ak.interface_info("ind
+[2026-11-26 16:45:49] 货币ETF 指数日线缺失，停止生成日频PE估算，避免复权ETF价格冒充指数点位
+[2026-11-26 16:45:49] 货币ETF 日频PE序列不足(样本0)，分位不可用
+[2026-11-26 16:45:50] 货币ETF: 收盘 101.002 | PE None 分位 1Y None% / 3Y None% / 5Y None% (n=None/None/None) | 官方PE 0条 | 决策 100分[67%] 状态「持有观察」| 闸门 warn（估值数据不足（官方PE 0 条）；数据源降级）
+[2026-11-26 16:45:50] 货币ETF: 价格历史已积累 3252 条 -> price_history_511880.csv
+[2026-11-26 16:45:53] [数据源] 东财ETF行情 2次尝试均失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
+[2026-11-26 16:45:53] 东财ETF行情不可用，尝试腾讯源
+[2026-11-26 16:46:02] [数据源] 东财指数行情 2次尝试均失败: AttributeError: index_zh_a_hist 已在 1.20.44 更名为 index_zh_hist_em，请改用 ak.index_zh_hist_em；参数与返回的列也可能有调整，用 ak.interface_info("index_zh_hist
+[2026-11-26 16:46:02] 东财指数行情不可用，尝试新浪源
+[2026-11-26 16:46:02] [数据源] 新浪指数行情 1次尝试均失败: AttributeError: stock_zh_index_daily 已在 1.20.44 更名为 index_zh_daily_sina，请改用 ak.index_zh_daily_sina；参数与返回的列也可能有调整，用 ak.interface_info("in
+[2026-11-26 16:46:02] 新浪指数行情不可用，尝试腾讯源
+[2026-11-26 16:46:02] [数据源] 腾讯指数行情 1次尝试均失败: AttributeError: stock_zh_index_daily_tx 已在 1.20.44 更名为 index_zh_daily_tx，请改用 ak.index_zh_daily_tx；参数与返回的列也可能有调整，用 ak.interface_info("ind
+[2026-11-26 16:46:02] 黄金ETF 指数日线缺失，停止生成日频PE估算，避免复权ETF价格冒充指数点位
+[2026-11-26 16:46:02] 黄金ETF 日频PE序列不足(样本0)，分位不可用
+[2026-11-26 16:46:02] 黄金ETF: 收盘 7.169 | PE None 分位 1Y None% / 3Y None% / 5Y None% (n=None/None/None) | 官方PE 0条 | 决策 25分[67%] 状态「暂停新增」| 闸门 warn（估值数据不足（官方PE 0 条）；数据源降级）
+[2026-11-26 16:46:02] 黄金ETF: 价格历史已积累 3240 条 -> price_history_518880.csv
+[2026-11-26 16:46:06] [数据源] 东财ETF行情 2次尝试均失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
+[2026-11-26 16:46:06] 东财ETF行情不可用，尝试腾讯源
+[2026-11-26 16:46:15] 红利ETF: 收盘 1.357 | PE 9.29 分位 1Y 99.6% / 3Y 99.9% / 5Y 99.9% (n=250/750/1250) | 官方PE 3826条 | 决策 45分[100%] 状态「持有观察」| 闸门 warn（数据源降级）
+[2026-11-26 16:46:15] 红利ETF: 价格历史已积累 1680 条 -> price_history_515180.csv
+[2026-11-26 16:46:15] 红利ETF: 指数历史已积累 5319 条 -> index_history_000922.csv
+[2026-11-26 16:46:18] [数据源] 东财ETF行情 2次尝试均失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
+[2026-11-26 16:46:18] 东财ETF行情不可用，尝试腾讯源
+[2026-11-26 16:46:29] 银行ETF: 收盘 1.538 | PE 7.84 分位 1Y 98.8% / 3Y 99.6% / 5Y 99.8% (n=250/750/1250) | 官方PE 2944条 | 决策 60分[100%] 状态「持有观察」| 闸门 warn（数据源降级）
+[2026-11-26 16:46:29] 银行ETF: 价格历史已积累 1334 条 -> price_history_516310.csv
+[2026-11-26 16:46:29] 银行ETF: 指数历史已积累 5319 条 -> index_history_399986.csv
+[2026-11-26 16:46:32] [数据源] 东财ETF行情 2次尝试均失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
+[2026-11-26 16:46:32] 东财ETF行情不可用，尝试腾讯源
+[2026-11-26 16:46:49] 煤炭ETF: 收盘 1.129 | PE 16.29 分位 1Y 39.8% / 3Y 80.0% / 5Y 88.0% (n=250/750/1250) | 官方PE 3826条 | 决策 34分[100%] 状态「暂停新增」| 闸门 warn（数据源降级）
+[2026-11-26 16:46:49] 煤炭ETF: 价格历史已积累 1635 条 -> price_history_515220.csv
+[2026-11-26 16:46:49] 煤炭ETF: 指数历史已积累 5319 条 -> index_history_000820.csv
+[2026-11-26 16:46:52] [数据源] 东财ETF行情 2次尝试均失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
+[2026-11-26 16:46:52] 东财ETF行情不可用，尝试腾讯源
+[2026-11-26 16:46:56] [数据源] 东财指数行情 2次尝试均失败: AttributeError: index_zh_a_hist 已在 1.20.44 更名为 index_zh_hist_em，请改用 ak.index_zh_hist_em；参数与返回的列也可能有调整，用 ak.interface_info("index_zh_hist
+[2026-11-26 16:46:56] 东财指数行情不可用，尝试新浪源
+[2026-11-26 16:46:56] [数据源] 新浪指数行情 1次尝试均失败: AttributeError: stock_zh_index_daily 已在 1.20.44 更名为 index_zh_daily_sina，请改用 ak.index_zh_daily_sina；参数与返回的列也可能有调整，用 ak.interface_info("in
+[2026-11-26 16:46:56] 新浪指数行情不可用，尝试腾讯源
+[2026-11-26 16:46:56] [数据源] 腾讯指数行情 1次尝试均失败: AttributeError: stock_zh_index_daily_tx 已在 1.20.44 更名为 index_zh_daily_tx，请改用 ak.index_zh_daily_tx；参数与返回的列也可能有调整，用 ak.interface_info("ind
+[2026-11-26 16:46:56] 自由现金流ETF 指数日线缺失，停止生成日频PE估算，避免复权ETF价格冒充指数点位
+[2026-11-26 16:46:56] 自由现金流ETF 日频PE序列不足(样本0)，分位不可用
+[2026-11-26 16:47:12] [数据源] 自由现金流ETF加权估值 1次尝试均失败: ReadTimeout: HTTPSConnectionPool(host='fundf10.eastmoney.com', port=443): Read timed out. (read timeout=15)
+[2026-11-26 16:47:12] 自由现金流ETF: 收盘 1.112 | PE 12.97 分位 1Y None% / 3Y None% / 5Y None% (n=None/None/None) | 官方PE 2829条 | 决策 63分[100%] 状态「正常定投」| 闸门 warn（估值口径陈旧 22 天；数据源降级）
+[2026-11-26 16:47:12] 自由现金流ETF: 价格历史已积累 425 条 -> price_history_159201.csv
+[2026-11-26 16:47:16] [数据源] 东财ETF行情 2次尝试均失败: Push2RateLimitError: 东方财富 push2 行情服务器断开了连接，通常是短时间内请求过多，当前 IP 被临时限流。首次限流一般约 5 分钟后恢复，反复触发后可能需要 40 分钟以上；等待期间不要重复调用东方财富的行情接口，否则会延长限流。
+[2026-11-26 16:47:16] 东财ETF行情不可用，尝试腾讯源
+[2026-11-26 16:47:24] 红利低波ETF: 收盘 1.235 | PE 8.89 分位 1Y 99.2% / 3Y 99.7% / 5Y 99.8% (n=250/750/1250) | 官方PE 3296条 | 决策 60分[100%] 状态「持有观察」| 闸门 warn（数据源降级）
+[2026-11-26 16:47:24] 红利低波ETF: 价格历史已积累 714 条 -> price_history_563020.csv
+[2026-11-26 16:47:24] 红利低波ETF: 指数历史已积累 5077 条 -> index_history_H30269.csv
+[2026-11-26 16:47:24] 组合相关性(近249个交易日日收益): {'沪深300ETF×中证A500ETF': 0.975, '沪深300ETF×国债ETF': -0.119, '沪深300ETF×货币ETF': -0.047, '沪深300ETF×黄金ETF': 0.476, '沪深300ETF×红利ETF': 0.261, '沪深300ETF×银行ETF': -0.176, '沪深300ETF×煤炭ETF': 0.115, '沪深300ETF×自由现金流ETF': 0.502, '沪深300ETF×红利低波ETF': 0.016, '中证A500ETF×国债ETF': -0.098, '中证A500ETF×货币ETF': -0.065, '中证A500ETF×黄金ETF': 0.49, '中证A500ETF×红利ETF': 0.187, '中证A500ETF×银行ETF': -0.295, '中证A500ETF×煤炭ETF': 0.069, '中证A500ETF×自由现金流ETF': 0.458, '中证A500ETF×红利低波ETF': -0.094, '国债ETF×货币ETF': 0.012, '国债ETF×黄金ETF': 0.029, '国债ETF×红利ETF': 0.001, '国债ETF×银行ETF': 0.014, '国债ETF×煤炭ETF': 0.027, '国债ETF×自由现金流ETF': -0.047, '国债ETF×红利低波ETF': 0.044, '货币ETF×黄金ETF': -0.004, '货币ETF×红利ETF': -0.032, '货币ETF×银行ETF': 0.029, '货币ETF×煤炭ETF': 0.007, '货币ETF×自由现金流ETF': -0.04, '货币ETF×红利低波ETF': 0.01, '黄金ETF×红利ETF': 0.351, '黄金ETF×银行ETF': 0.066, '黄金ETF×煤炭ETF': 0.145, '黄金ETF×自由现金流ETF': 0.535, '黄金ETF×红利低波ETF': 0.239, '红利ETF×银行ETF': 0.517, '红利ETF×煤炭ETF': 0.734, '红利ETF×自由现金流ETF': 0.757, '红利ETF×红利低波ETF': 0.754, '银行ETF×煤炭ETF': 0.214, '银行ETF×自由现金流ETF': 0.261, '银行ETF×红利低波ETF': 0.844, '煤炭ETF×自由现金流ETF': 0.532, '煤炭ETF×红利低波ETF': 0.438, '自由现金流ETF×红利低波ETF': 0.564, '_n': 249}
+[2026-11-26 16:47:24] 组合风险引擎: 年化波动 9.748% / MDD -9.11% / 压力情景 6 个
+[2026-11-26 16:47:24] 三层纪律: 维持 / 限制加仓 / 无触发
+[2026-11-26 16:48:04] ETF质量评估: 10 只 / 持仓穿透重合对 15 个
+[2026-11-26 16:48:04] 策略研究: 2 只核心标的六基准+滚动验证完成
+[2026-11-26 16:48:07] V5 分层完成: 评分 10 只 / 风险 低风险 / 决策 10 条（暂停 0）/ 库表 20 / 验收 9/10 通过
+[2026-11-26 16:48:07] 看板已生成: /home/runner/work/etf-monitor-V3/etf-monitor-V3/output/etf_dashboard.html
